@@ -158,8 +158,7 @@ const viewPackage = (id: string) => {
 }
 
 const navigateToCreate = () => {
-  console.log('Navigate to create package')
-  // TODO: Navigate to create package page
+  router.push('/packages/create')
 }
 
 onMounted(() => {

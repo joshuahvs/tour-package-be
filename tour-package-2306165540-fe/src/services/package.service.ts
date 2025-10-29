@@ -1,4 +1,4 @@
-import type { ApiResponse, PackageData, PackageDetailData } from '@/interfaces/package.interface'
+import type { ApiResponse, PackageData, PackageDetailData, CreatePackageRequest } from '@/interface/package.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 
@@ -40,7 +40,7 @@ export const packageApi = {
     }
   },
 
-  async createPackage(packageData: Omit<PackageData, 'id'>): Promise<PackageData> {
+  async createPackage(packageData: CreatePackageRequest): Promise<PackageData> {
     try {
       const response = await fetch(`${API_BASE_URL}/package`, {
         method: 'POST',
