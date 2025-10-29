@@ -56,9 +56,33 @@ public class PackageRestServiceImpl implements PackageRestService {
 
     @Override
     public PackageResponseDTO createPackage(CreatePackageRequestDTO requestDTO) {
+        // Validate end date is after start date
+        if (requestDTO.getEndDate().isBefore(requestDTO.getStartDate())) {
+            throw new RuntimeException("End date must be after start date");
+        }
+
+        // Generate package ID
+        String packageId = generatePackageId(requestDTO.getUserId());
+
         Package packageEntity = toEntity(requestDTO);
+        packageEntity.setId(packageId);
+        packageEntity.setStatus("PENDING"); // Default status
+        packageEntity.setPrice(0L); // Initial price is 0
+
         Package savedPackage = packageRepository.save(packageEntity);
         return toResponseDTO(savedPackage);
+    }
+
+    private String generatePackageId(String userId) {
+        // Get count of packages for this user
+        List<Package> userPackages = packageRepository.findAll().stream()
+                .filter(pkg -> pkg.getUserId().equals(userId))
+                .collect(Collectors.toList());
+
+        int count = userPackages.size() + 1;
+        String countStr = String.format("%03d", count);
+
+        return "PACK-" + userId + "-" + countStr;
     }
 
     @Override
