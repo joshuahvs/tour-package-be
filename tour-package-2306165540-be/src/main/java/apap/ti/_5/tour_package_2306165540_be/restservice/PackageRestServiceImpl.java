@@ -1,9 +1,12 @@
 package apap.ti._5.tour_package_2306165540_be.restservice;
 
 import apap.ti._5.tour_package_2306165540_be.model.Package;
+import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePackageRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +45,13 @@ public class PackageRestServiceImpl implements PackageRestService {
         Package packageEntity = packageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
         return toResponseDTO(packageEntity);
+    }
+
+    @Override
+    public PackageDetailResponseDTO getPackageDetailById(String id) {
+        Package packageEntity = packageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
+        return toDetailResponseDTO(packageEntity);
     }
 
     @Override
@@ -100,5 +110,40 @@ public class PackageRestServiceImpl implements PackageRestService {
         packageEntity.setStartDate(dto.getStartDate());
         packageEntity.setEndDate(dto.getEndDate());
         return packageEntity;
+    }
+
+    private PackageDetailResponseDTO toDetailResponseDTO(Package packageEntity) {
+        PackageDetailResponseDTO dto = new PackageDetailResponseDTO();
+        dto.setId(packageEntity.getId());
+        dto.setUserId(packageEntity.getUserId());
+        dto.setPackageName(packageEntity.getPackageName());
+        dto.setQuota(packageEntity.getQuota());
+        dto.setPrice(packageEntity.getPrice());
+        dto.setStatus(packageEntity.getStatus());
+        dto.setStartDate(packageEntity.getStartDate());
+        dto.setEndDate(packageEntity.getEndDate());
+
+        // Map plans
+        List<PlanResponseDTO> planDTOs = packageEntity.getPlans().stream()
+                .map(this::toPlanResponseDTO)
+                .collect(Collectors.toList());
+        dto.setPlans(planDTOs);
+
+        return dto;
+    }
+
+    private PlanResponseDTO toPlanResponseDTO(Plan plan) {
+        PlanResponseDTO dto = new PlanResponseDTO();
+        dto.setId(plan.getId());
+        dto.setPlanName(plan.getActivityType() + " Plan");
+        dto.setPrice(plan.getPrice());
+        dto.setActivityType(plan.getActivityType());
+        dto.setStatus(plan.getStatus());
+        dto.setStartDate(plan.getStartDate());
+        dto.setEndDate(plan.getEndDate());
+        dto.setStartLocation(plan.getStartLocation());
+        dto.setEndLocation(plan.getEndLocation());
+        dto.setActivitiesCount(plan.getOrderedQuantities() != null ? plan.getOrderedQuantities().size() : 0);
+        return dto;
     }
 }

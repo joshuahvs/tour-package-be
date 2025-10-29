@@ -2,6 +2,7 @@ package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
 import apap.ti._5.tour_package_2306165540_be.restdto.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePackageRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.PackageRestService;
 import lombok.RequiredArgsConstructor;
@@ -74,6 +75,37 @@ public class PackageRestController {
             BaseResponseDTO<PackageResponseDTO> response = new BaseResponseDTO<>();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.setMessage("Failed to retrieve package: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<BaseResponseDTO<PackageDetailResponseDTO>> getPackageDetailById(@PathVariable String id) {
+        try {
+            PackageDetailResponseDTO packageDTO = packageRestService.getPackageDetailById(id);
+
+            BaseResponseDTO<PackageDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully retrieved package detail");
+            response.setData(packageDTO);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<PackageDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<PackageDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to retrieve package detail: " + e.getMessage());
             response.setData(null);
             response.setTimestamp(new Date());
 
