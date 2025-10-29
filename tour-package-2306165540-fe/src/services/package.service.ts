@@ -1,4 +1,4 @@
-import type { ApiResponse, PackageData } from '@/types/api'
+import type { ApiResponse, PackageData, PackageDetailData } from '@/interfaces/package.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 
@@ -96,6 +96,22 @@ export const packageApi = {
       }
     } catch (error) {
       console.error('Error deleting package:', error)
+      throw error
+    }
+  },
+
+  async getPackageDetail(id: string): Promise<PackageDetailData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/package/${id}/detail`)
+      const json: ApiResponse<PackageDetailData> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to fetch package detail')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error fetching package detail:', error)
       throw error
     }
   },

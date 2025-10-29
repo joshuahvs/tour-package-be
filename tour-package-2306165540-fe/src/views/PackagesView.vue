@@ -93,7 +93,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { packageApi } from '@/services/package.service'
-import type { PackageData } from '@/types/api'
+import type { PackageData } from '@/interfaces/package.interface'
 
 const router = useRouter()
 const packages = ref<PackageData[]>([])
@@ -154,8 +154,7 @@ const getStatusClass = (status: string) => {
 }
 
 const viewPackage = (id: string) => {
-  console.log('View package:', id)
-  // TODO: Navigate to package details page
+  router.push(`/packages/${id}`)
 }
 
 const navigateToCreate = () => {

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import ActivitiesView from '@/views/ActivitiesView.vue'
 import PackagesView from '@/views/PackagesView.vue'
+import PackageDetailView from '@/views/PackageDetailView.vue'
 import ReportsView from '@/views/ReportsView.vue'
 import AboutView from '../views/AboutView.vue'
 
@@ -22,6 +23,11 @@ const router = createRouter({
       path: '/packages',
       name: 'packages',
       component: PackagesView,
+    },
+    {
+      path: '/packages/:id',
+      name: 'package-detail',
+      component: PackageDetailView,
     },
     {
       path: '/reports',
