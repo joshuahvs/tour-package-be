@@ -1,0 +1,11 @@
+package apap.ti._5.tour_package_2306165540_be.repository;
+
+import apap.ti._5.tour_package_2306165540_be.model.OrderedQuantity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+@Repository
+public interface OrderedQuantityRepository extends JpaRepository<OrderedQuantity, UUID> {
+}
