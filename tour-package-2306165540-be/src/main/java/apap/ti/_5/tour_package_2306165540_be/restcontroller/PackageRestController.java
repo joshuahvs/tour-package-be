@@ -153,12 +153,20 @@ public class PackageRestController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             BaseResponseDTO<PackageResponseDTO> response = new BaseResponseDTO<>();
-            response.setStatus(HttpStatus.NOT_FOUND.value());
+
+            // Check if it's a validation error or not found error
+            if (e.getMessage().contains("not found")) {
+                response.setStatus(HttpStatus.NOT_FOUND.value());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            } else {
+                response.setStatus(HttpStatus.BAD_REQUEST.value());
+            }
+
             response.setMessage(e.getMessage());
             response.setData(null);
             response.setTimestamp(new Date());
 
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (Exception e) {
             BaseResponseDTO<PackageResponseDTO> response = new BaseResponseDTO<>();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());

@@ -95,11 +95,25 @@ public class PackageRestServiceImpl implements PackageRestService {
         Package existingPackage = packageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
 
-        existingPackage.setUserId(requestDTO.getUserId());
+        // Validate: Only allow edit if status is PENDING
+        if (!"PENDING".equalsIgnoreCase(existingPackage.getStatus())) {
+            throw new RuntimeException("Cannot edit package. Only packages with status 'PENDING' can be edited.");
+        }
+
+        // Validate: Only allow edit if package doesn't have any plans
+        if (existingPackage.getPlans() != null && !existingPackage.getPlans().isEmpty()) {
+            throw new RuntimeException("Cannot edit package. Package with existing plans cannot be edited.");
+        }
+
+        // Validate: End date must be after start date
+        if (requestDTO.getEndDate().isBefore(requestDTO.getStartDate())) {
+            throw new RuntimeException("End date must be after start date");
+        }
+
+        // Update package fields (userId cannot be changed to maintain package ID
+        // format)
         existingPackage.setPackageName(requestDTO.getPackageName());
         existingPackage.setQuota(requestDTO.getQuota());
-        existingPackage.setPrice(requestDTO.getPrice());
-        existingPackage.setStatus(requestDTO.getStatus());
         existingPackage.setStartDate(requestDTO.getStartDate());
         existingPackage.setEndDate(requestDTO.getEndDate());
 
