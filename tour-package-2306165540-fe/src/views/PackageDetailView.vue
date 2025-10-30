@@ -13,7 +13,7 @@
       <!-- Action Buttons -->
       <div class="action-buttons">
         <button class="btn btn-edit">Edit Package</button>
-        <button class="btn btn-delete" @click="handleDelete">Delete Package</button>
+        <button class="btn btn-delete" @click="showDeleteModal = true">Delete Package</button>
         <button class="btn btn-process">Process Package</button>
       </div>
 
@@ -98,6 +98,32 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click="showDeleteModal = false">
+      <div class="modal-content" @click.stop>
+        <h3 class="modal-title">Delete Package</h3>
+        <p class="modal-message">
+          Are you sure you want to delete this package? This action cannot be undone and will also delete all associated plans.
+        </p>
+        <div class="modal-actions">
+          <button 
+            class="btn btn-confirm"
+            @click="handleDelete"
+            :disabled="isDeleting"
+          >
+            {{ isDeleting ? 'Deleting...' : 'OK' }}
+          </button>
+          <button 
+            class="btn btn-cancel"
+            @click="showDeleteModal = false"
+            :disabled="isDeleting"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -105,7 +131,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { packageApi } from '@/services/package.service'
-import type { PackageDetailData } from '@/interfaces/package.interface'
+import type { PackageDetailData } from '@/interface/package.interface'
 
 const route = useRoute()
 const router = useRouter()
@@ -113,6 +139,8 @@ const router = useRouter()
 const packageDetail = ref<PackageDetailData | null>(null)
 const loading = ref(true)
 const error = ref('')
+const showDeleteModal = ref(false)
+const isDeleting = ref(false)
 
 const fetchPackageDetail = async () => {
   try {
@@ -163,16 +191,28 @@ const getStatusClass = (status: string) => {
 }
 
 const handleDelete = async () => {
-  if (confirm('Are you sure you want to delete this package?')) {
-    try {
-      const id = route.params.id as string
-      await packageApi.deletePackage(id)
-      alert('Package deleted successfully')
-      router.push('/packages')
-    } catch (err) {
-      alert('Failed to delete package')
-      console.error(err)
-    }
+  isDeleting.value = true
+  
+  try {
+    const id = route.params.id as string
+    await packageApi.deletePackage(id)
+    showDeleteModal.value = false
+    
+    // Show success message
+    alert('Package deleted successfully!')
+    
+    // Navigate back to packages list
+    router.push('/packages')
+  } catch (err: any) {
+    showDeleteModal.value = false
+    
+    // Show error message from backend
+    const errorMessage = err.message || 'Failed to delete package'
+    alert(errorMessage)
+    
+    console.error(err)
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -368,6 +408,69 @@ onMounted(() => {
 
 .text-center {
   text-align: center;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title {
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+
+.modal-message {
+  color: #d1d5db;
+  line-height: 1.6;
+  margin: 0 0 1.5rem 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.btn-confirm {
+  background: #06b6d4;
+  color: white;
+  min-width: 80px;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #0891b2;
+}
+
+.btn-cancel {
+  background: #4b5563;
+  color: white;
+  min-width: 80px;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #374151;
 }
 
 @media (max-width: 768px) {
