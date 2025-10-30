@@ -115,4 +115,22 @@ export const packageApi = {
       throw error
     }
   },
+
+  async processPackage(id: string): Promise<PackageData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/package/${id}/process`, {
+        method: 'PUT',
+      })
+      const json: ApiResponse<PackageData> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to process package')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error processing package:', error)
+      throw error
+    }
+  },
 }

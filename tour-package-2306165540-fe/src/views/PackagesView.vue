@@ -148,7 +148,7 @@ const formatPrice = (price: number) => {
 
 const getStatusClass = (status: string) => {
   const statusLower = status.toLowerCase()
-  if (statusLower === 'active') return 'status-active'
+  if (statusLower === 'processed') return 'status-active'
   if (statusLower === 'pending') return 'status-pending'
   return 'status-default'
 }

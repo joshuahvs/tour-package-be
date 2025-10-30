@@ -21,7 +21,14 @@
           Edit Package
         </button>
         <button class="btn btn-delete" @click="showDeleteModal = true">Delete Package</button>
-        <button class="btn btn-process">Process Package</button>
+        <button 
+          class="btn btn-process"
+          @click="showProcessModal = true"
+          :disabled="!canProcess"
+          :title="!canProcess ? 'Can only process PENDING packages with all plans FULFILLED' : 'Process this package'"
+        >
+          Process Package
+        </button>
       </div>
 
       <!-- Package Information Card -->
@@ -131,6 +138,35 @@
         </div>
       </div>
     </div>
+
+    <!-- Process Confirmation Modal -->
+    <div v-if="showProcessModal" class="modal-overlay" @click="showProcessModal = false">
+      <div class="modal-content" @click.stop>
+        <h3 class="modal-title">Process Package</h3>
+        <p class="modal-message">
+          Are you sure you want to process this package? This will change the package status to 'PROCESSED' and book all activities. This action cannot be undone.
+        </p>
+        <div class="modal-warning">
+          ⚠️ All associated activities will have their capacity reduced.
+        </div>
+        <div class="modal-actions">
+          <button 
+            class="btn btn-confirm"
+            @click="handleProcess"
+            :disabled="isProcessing"
+          >
+            {{ isProcessing ? 'Processing...' : 'OK' }}
+          </button>
+          <button 
+            class="btn btn-cancel"
+            @click="showProcessModal = false"
+            :disabled="isProcessing"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -148,6 +184,8 @@ const loading = ref(true)
 const error = ref('')
 const showDeleteModal = ref(false)
 const isDeleting = ref(false)
+const showProcessModal = ref(false)
+const isProcessing = ref(false)
 
 // Computed property to determine if package can be edited
 const canEdit = computed(() => {
@@ -155,6 +193,17 @@ const canEdit = computed(() => {
   // Only PENDING packages without plans can be edited
   return packageDetail.value.status === 'PENDING' && 
          packageDetail.value.plans.length === 0
+})
+
+// Computed property to determine if package can be processed
+const canProcess = computed(() => {
+  if (!packageDetail.value) return false
+  // Only PENDING packages with at least one plan
+  if (packageDetail.value.status !== 'PENDING' || packageDetail.value.plans.length === 0) {
+    return false
+  }
+  // All plans must have status FULFILLED
+  return packageDetail.value.plans.every(plan => plan.status === 'FULFILLED')
 })
 
 const fetchPackageDetail = async () => {
@@ -200,7 +249,7 @@ const formatCurrency = (amount: number) => {
 
 const getStatusClass = (status: string) => {
   const statusLower = status.toLowerCase()
-  if (statusLower === 'active' || statusLower === 'confirmed') return 'status-success'
+  if (statusLower === 'processed' || statusLower === 'fulfilled') return 'status-success'
   if (statusLower === 'pending') return 'status-warning'
   return 'status-default'
 }
@@ -237,6 +286,32 @@ const handleDelete = async () => {
     console.error(err)
   } finally {
     isDeleting.value = false
+  }
+}
+
+const handleProcess = async () => {
+  isProcessing.value = true
+  
+  try {
+    const id = route.params.id as string
+    await packageApi.processPackage(id)
+    showProcessModal.value = false
+    
+    // Show success message
+    alert('Package processed successfully!')
+    
+    // Refresh the package detail to show updated status
+    await fetchPackageDetail()
+  } catch (err: any) {
+    showProcessModal.value = false
+    
+    // Show error message from backend
+    const errorMessage = err.message || 'Failed to process package'
+    alert(errorMessage)
+    
+    console.error(err)
+  } finally {
+    isProcessing.value = false
   }
 }
 
@@ -475,6 +550,19 @@ onMounted(() => {
   color: #d1d5db;
   line-height: 1.6;
   margin: 0 0 1.5rem 0;
+}
+
+.modal-warning {
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  color: #92400e;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin: 0 0 1.5rem 0;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .modal-actions {
