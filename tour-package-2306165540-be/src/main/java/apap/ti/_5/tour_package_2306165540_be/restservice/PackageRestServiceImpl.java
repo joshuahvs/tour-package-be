@@ -3,6 +3,7 @@ package apap.ti._5.tour_package_2306165540_be.restservice;
 import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
+import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePackageRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageResponseDTO;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,11 +22,13 @@ import java.util.stream.Collectors;
 public class PackageRestServiceImpl implements PackageRestService {
 
     private final PackageRepository packageRepository;
+    private final PlanRepository planRepository;
 
     @Override
     public List<PackageResponseDTO> getAllPackages() {
         List<Package> packages = packageRepository.findAll();
         return packages.stream()
+                .filter(pkg -> !"DELETED".equalsIgnoreCase(pkg.getStatus())) // Filter out deleted packages
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -33,8 +37,9 @@ public class PackageRestServiceImpl implements PackageRestService {
     public List<PackageResponseDTO> searchPackagesByName(String name) {
         List<Package> packages = packageRepository.findAll();
 
-        // Filter packages by name in Java
+        // Filter packages by name and exclude deleted packages
         return packages.stream()
+                .filter(pkg -> !"DELETED".equalsIgnoreCase(pkg.getStatus())) // Filter out deleted packages
                 .filter(pkg -> pkg.getPackageName().toLowerCase().contains(name.toLowerCase()))
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
@@ -106,7 +111,23 @@ public class PackageRestServiceImpl implements PackageRestService {
     public void deletePackage(String id) {
         Package packageEntity = packageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
-        packageRepository.delete(packageEntity);
+
+        if (!"PENDING".equalsIgnoreCase(packageEntity.getStatus())) {
+            throw new RuntimeException("Cannot delete package. Only packages with status 'PENDING' can be deleted.");
+        }
+
+        List<Plan> plansToDelete = new ArrayList<>(packageEntity.getPlans());
+
+        packageEntity.getPlans().clear();
+
+        packageRepository.save(packageEntity);
+
+        if (!plansToDelete.isEmpty()) {
+            planRepository.deleteAll(plansToDelete);
+        }
+
+        packageEntity.setStatus("DELETED");
+        packageRepository.save(packageEntity);
     }
 
     // Mapper methods
@@ -147,7 +168,7 @@ public class PackageRestServiceImpl implements PackageRestService {
         dto.setStartDate(packageEntity.getStartDate());
         dto.setEndDate(packageEntity.getEndDate());
 
-        // Map plans
+        // Map all plans (no need to filter since plans are not soft deleted)
         List<PlanResponseDTO> planDTOs = packageEntity.getPlans().stream()
                 .map(this::toPlanResponseDTO)
                 .collect(Collectors.toList());

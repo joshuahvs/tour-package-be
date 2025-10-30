@@ -184,6 +184,17 @@ public class PackageRestController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             BaseResponseDTO<Void> response = new BaseResponseDTO<>();
+
+            // Check if it's a validation error (not PENDING status)
+            if (e.getMessage().contains("Only packages with status 'PENDING'")) {
+                response.setStatus(HttpStatus.BAD_REQUEST.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+            // Package not found
             response.setStatus(HttpStatus.NOT_FOUND.value());
             response.setMessage(e.getMessage());
             response.setData(null);
