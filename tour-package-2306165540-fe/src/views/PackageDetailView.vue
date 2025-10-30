@@ -69,7 +69,16 @@
 
       <!-- Plans for Package Card -->
       <div class="plans-card">
-        <h2 class="card-title">Plans for Package</h2>
+        <div class="card-header-with-button">
+          <h2 class="card-title">Plans for Package</h2>
+          <button 
+            v-if="packageDetail.status === 'PENDING'"
+            class="btn btn-create-plan" 
+            @click="handleCreatePlan"
+          >
+            Create New Plan
+          </button>
+        </div>
         
         <div class="table-container">
           <table class="plans-table">
@@ -249,7 +258,7 @@ const formatCurrency = (amount: number) => {
 const getStatusClass = (status: string) => {
   const statusLower = status.toLowerCase()
   if (statusLower === 'processed' || statusLower === 'fulfilled') return 'status-success'
-  if (statusLower === 'pending') return 'status-warning'
+  if (statusLower === 'pending' || statusLower === 'unfulfilled') return 'status-warning'
   return 'status-default'
 }
 
@@ -260,6 +269,11 @@ const handleEdit = () => {
   }
   const id = route.params.id as string
   router.push(`/packages/${id}/edit`)
+}
+
+const handleCreatePlan = () => {
+  const id = route.params.id as string
+  router.push(`/packages/${id}/plans/create`)
 }
 
 const handleProcessClick = () => {
@@ -457,12 +471,37 @@ onMounted(() => {
   background: #4f46e5;
 }
 
+.btn-create-plan {
+  background: #10b981;
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-create-plan:hover {
+  background: #059669;
+}
+
 .info-card,
 .plans-card {
   background: white;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+}
+
+.card-header-with-button {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header-with-button .card-title {
+  background: none;
+  padding: 0;
+  margin: 0;
 }
 
 .card-title {

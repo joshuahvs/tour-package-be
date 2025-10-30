@@ -5,6 +5,7 @@ import PackagesView from '@/views/PackagesView.vue'
 import CreatePackageView from '@/views/CreatePackageView.vue'
 import EditPackageView from '@/views/EditPackageView.vue'
 import PackageDetailView from '@/views/PackageDetailView.vue'
+import CreatePlanView from '@/views/CreatePlanView.vue'
 import ReportsView from '@/views/ReportsView.vue'
 import AboutView from '../views/AboutView.vue'
 
@@ -40,6 +41,11 @@ const router = createRouter({
       path: '/packages/:id/edit',
       name: 'edit-package',
       component: EditPackageView,
+    },
+    {
+      path: '/packages/:id/plans/create',
+      name: 'create-plan',
+      component: CreatePlanView,
     },
     {
       path: '/reports',
