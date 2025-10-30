@@ -23,9 +23,8 @@
         <button class="btn btn-delete" @click="showDeleteModal = true">Delete Package</button>
         <button 
           class="btn btn-process"
-          @click="showProcessModal = true"
-          :disabled="!canProcess"
-          :title="!canProcess ? 'Can only process PENDING packages with all plans FULFILLED' : 'Process this package'"
+          @click="handleProcessClick"
+          :class="{ 'btn-disabled': !canProcess }"
         >
           Process Package
         </button>
@@ -263,6 +262,46 @@ const handleEdit = () => {
   router.push(`/packages/${id}/edit`)
 }
 
+const handleProcessClick = () => {
+  console.log('Process button clicked!')
+  console.log('Package detail:', packageDetail.value)
+  
+  if (!packageDetail.value) {
+    console.log('No package detail')
+    return
+  }
+
+  console.log('Package status:', packageDetail.value.status)
+  
+  // Check if package status is PENDING
+  if (packageDetail.value.status !== 'PENDING') {
+    alert('Cannot process package. Only packages with status "PENDING" can be processed.')
+    return
+  }
+
+  console.log('Plans count:', packageDetail.value.plans.length)
+  
+  // Check if package has plans
+  if (packageDetail.value.plans.length === 0) {
+    alert('Cannot process package. Package must have at least one plan.')
+    return
+  }
+
+  // Check if all plans have FULFILLED status
+  console.log('Plans:', packageDetail.value.plans)
+  const hasNonFulfilledPlans = packageDetail.value.plans.some(plan => plan.status !== 'FULFILLED')
+  console.log('Has non-fulfilled plans:', hasNonFulfilledPlans)
+  
+  if (hasNonFulfilledPlans) {
+    alert('Cannot process package. All plans must have status "FULFILLED" before processing.')
+    return
+  }
+
+  // All criteria met, show confirmation modal
+  console.log('Opening process modal')
+  showProcessModal.value = true
+}
+
 const handleDelete = async () => {
   isDeleting.value = true
   
@@ -402,6 +441,11 @@ onMounted(() => {
 
 .btn-process:hover {
   background: #059669;
+}
+
+.btn-process.btn-disabled {
+  background: #9ca3af;
+  opacity: 0.6;
 }
 
 .btn-view {
