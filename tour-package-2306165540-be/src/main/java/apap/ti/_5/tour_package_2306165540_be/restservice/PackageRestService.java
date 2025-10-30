@@ -19,5 +19,7 @@ public interface PackageRestService {
 
     PackageResponseDTO updatePackage(String id, CreatePackageRequestDTO requestDTO);
 
+    PackageResponseDTO processPackage(String id);
+
     void deletePackage(String id);
 }

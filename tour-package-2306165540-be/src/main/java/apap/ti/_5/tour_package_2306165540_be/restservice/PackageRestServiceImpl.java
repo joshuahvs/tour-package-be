@@ -122,6 +122,54 @@ public class PackageRestServiceImpl implements PackageRestService {
     }
 
     @Override
+    public PackageResponseDTO processPackage(String id) {
+        Package packageEntity = packageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
+
+        // Validate: Package must have status PENDING
+        if (!"PENDING".equalsIgnoreCase(packageEntity.getStatus())) {
+            throw new RuntimeException("Cannot process package. Only packages with status 'PENDING' can be processed.");
+        }
+
+        // Validate: All plans must have status FULFILLED
+        if (packageEntity.getPlans() == null || packageEntity.getPlans().isEmpty()) {
+            throw new RuntimeException("Cannot process package. Package must have at least one plan.");
+        }
+
+        boolean allPlansFulfilled = packageEntity.getPlans().stream()
+                .allMatch(plan -> "FULFILLED".equalsIgnoreCase(plan.getStatus()));
+
+        if (!allPlansFulfilled) {
+            throw new RuntimeException(
+                    "Cannot process package. All plans must have status 'FULFILLED' before processing.");
+        }
+
+        // Process: Change package status to PROCESSED
+        packageEntity.setStatus("PROCESSED");
+
+        // Booking activities: Reduce capacity
+        // For each plan's ordered quantities, reduce the activity capacity
+        for (Plan plan : packageEntity.getPlans()) {
+            if (plan.getOrderedQuantities() != null) {
+                for (var orderedQty : plan.getOrderedQuantities()) {
+                    var activity = orderedQty.getActivity();
+                    int newCapacity = activity.getCapacity() - orderedQty.getOrderedQuota();
+
+                    if (newCapacity < 0) {
+                        throw new RuntimeException("Cannot process package. Activity '" +
+                                activity.getActivityName() + "' does not have enough capacity.");
+                    }
+
+                    activity.setCapacity(newCapacity);
+                }
+            }
+        }
+
+        Package processedPackage = packageRepository.save(packageEntity);
+        return toResponseDTO(processedPackage);
+    }
+
+    @Override
     public void deletePackage(String id) {
         Package packageEntity = packageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));

@@ -219,4 +219,46 @@ public class PackageRestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    @PutMapping("/{id}/process")
+    public ResponseEntity<BaseResponseDTO<PackageResponseDTO>> processPackage(@PathVariable String id) {
+        try {
+            PackageResponseDTO processedPackage = packageRestService.processPackage(id);
+
+            BaseResponseDTO<PackageResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully processed package");
+            response.setData(processedPackage);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<PackageResponseDTO> response = new BaseResponseDTO<>();
+
+            // Check if it's a validation error
+            if (e.getMessage().contains("Cannot process package")) {
+                response.setStatus(HttpStatus.BAD_REQUEST.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+
+            // Package not found
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<PackageResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to process package: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 }
