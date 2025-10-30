@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import ActivitiesView from '@/views/ActivitiesView.vue'
 import PackagesView from '@/views/PackagesView.vue'
 import CreatePackageView from '@/views/CreatePackageView.vue'
+import EditPackageView from '@/views/EditPackageView.vue'
 import PackageDetailView from '@/views/PackageDetailView.vue'
 import ReportsView from '@/views/ReportsView.vue'
 import AboutView from '../views/AboutView.vue'
@@ -34,6 +35,11 @@ const router = createRouter({
       path: '/packages/:id',
       name: 'package-detail',
       component: PackageDetailView,
+    },
+    {
+      path: '/packages/:id/edit',
+      name: 'edit-package',
+      component: EditPackageView,
     },
     {
       path: '/reports',

@@ -12,7 +12,14 @@
       
       <!-- Action Buttons -->
       <div class="action-buttons">
-        <button class="btn btn-edit">Edit Package</button>
+        <button 
+          class="btn btn-edit" 
+          @click="handleEdit"
+          :disabled="!canEdit"
+          :title="!canEdit ? 'Can only edit PENDING packages without plans' : 'Edit this package'"
+        >
+          Edit Package
+        </button>
         <button class="btn btn-delete" @click="showDeleteModal = true">Delete Package</button>
         <button class="btn btn-process">Process Package</button>
       </div>
@@ -128,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { packageApi } from '@/services/package.service'
 import type { PackageDetailData } from '@/interface/package.interface'
@@ -141,6 +148,14 @@ const loading = ref(true)
 const error = ref('')
 const showDeleteModal = ref(false)
 const isDeleting = ref(false)
+
+// Computed property to determine if package can be edited
+const canEdit = computed(() => {
+  if (!packageDetail.value) return false
+  // Only PENDING packages without plans can be edited
+  return packageDetail.value.status === 'PENDING' && 
+         packageDetail.value.plans.length === 0
+})
 
 const fetchPackageDetail = async () => {
   try {
@@ -188,6 +203,15 @@ const getStatusClass = (status: string) => {
   if (statusLower === 'active' || statusLower === 'confirmed') return 'status-success'
   if (statusLower === 'pending') return 'status-warning'
   return 'status-default'
+}
+
+const handleEdit = () => {
+  if (!canEdit.value) {
+    alert('Can only edit PENDING packages without plans')
+    return
+  }
+  const id = route.params.id as string
+  router.push(`/packages/${id}/edit`)
 }
 
 const handleDelete = async () => {
@@ -277,8 +301,14 @@ onMounted(() => {
   color: white;
 }
 
-.btn-edit:hover {
+.btn-edit:hover:not(:disabled) {
   background: #4f46e5;
+}
+
+.btn-edit:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .btn-delete {
