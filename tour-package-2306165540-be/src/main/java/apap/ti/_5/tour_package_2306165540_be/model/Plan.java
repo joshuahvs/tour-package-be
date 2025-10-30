@@ -27,6 +27,9 @@ public class Plan {
     @JoinColumn(name = "package_id", referencedColumnName = "id", nullable = false)
     private Package packageEntity;
 
+    @Column(name = "plan_name", nullable = false)
+    private String planName;
+
     @Column(name = "price", nullable = false)
     private Long price;
 
