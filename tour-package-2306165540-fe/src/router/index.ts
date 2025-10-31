@@ -7,6 +7,7 @@ import EditPackageView from '@/views/EditPackageView.vue'
 import PackageDetailView from '@/views/PackageDetailView.vue'
 import CreatePlanView from '@/views/CreatePlanView.vue'
 import PlanDetailView from '@/views/PlanDetailView.vue'
+import EditPlanView from '@/views/EditPlanView.vue'
 import ReportsView from '@/views/ReportsView.vue'
 import AboutView from '../views/AboutView.vue'
 
@@ -52,6 +53,11 @@ const router = createRouter({
       path: '/plans/:id',
       name: 'plan-detail',
       component: PlanDetailView,
+    },
+    {
+      path: '/plans/:id/edit',
+      name: 'edit-plan',
+      component: EditPlanView,
     },
     {
       path: '/reports',

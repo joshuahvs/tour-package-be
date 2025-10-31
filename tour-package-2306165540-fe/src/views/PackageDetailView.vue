@@ -43,12 +43,12 @@
             <span>{{ packageDetail.userId }}</span>
           </div>
           <div class="info-item">
-            <label>End Date:</label>
-            <span>{{ formatDate(packageDetail.endDate) }}</span>
-          </div>
-          <div class="info-item">
             <label>Start Date:</label>
             <span>{{ formatDate(packageDetail.startDate) }}</span>
+          </div>
+          <div class="info-item">
+            <label>End Date:</label>
+            <span>{{ formatDate(packageDetail.endDate) }}</span>
           </div>
           <div class="info-item">
             <label>Quota:</label>

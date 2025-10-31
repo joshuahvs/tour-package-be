@@ -68,7 +68,7 @@
 
         <div class="action-buttons">
           <button class="btn btn-view" @click="handleViewPackage">View Package</button>
-          <button class="btn btn-edit">Edit Plan</button>
+          <button class="btn btn-edit" @click="handleEditPlan">Edit Plan</button>
           <button class="btn btn-delete">Delete Plan</button>
         </div>
       </div>
@@ -177,6 +177,12 @@ const handleBack = () => {
 const handleViewPackage = () => {
   if (planDetail.value) {
     router.push(`/packages/${planDetail.value.packageId}`)
+  }
+}
+
+const handleEditPlan = () => {
+  if (planDetail.value) {
+    router.push(`/plans/${planDetail.value.id}/edit`)
   }
 }
 

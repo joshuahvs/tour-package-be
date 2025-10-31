@@ -1,4 +1,4 @@
-import type { ApiResponse, CreatePlanRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
+import type { ApiResponse, CreatePlanRequest, UpdatePlanRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 
@@ -53,6 +53,28 @@ export const planApi = {
       return json.data || []
     } catch (error) {
       console.error('Error fetching locations:', error)
+      throw error
+    }
+  },
+
+  async updatePlan(planId: string, planData: UpdatePlanRequest): Promise<PlanDetailData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/plans/${planId}/edit`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(planData),
+      })
+      const json: ApiResponse<PlanDetailData> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to update plan')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error updating plan:', error)
       throw error
     }
   },

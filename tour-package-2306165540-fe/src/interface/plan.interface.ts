@@ -47,6 +47,14 @@ export interface CreatePlanRequest {
   endLocation: string
 }
 
+export interface UpdatePlanRequest {
+  planName: string
+  startDate: string
+  endDate: string
+  startLocation: string
+  endLocation: string
+}
+
 export interface LocationData {
   code: string
   name: string
