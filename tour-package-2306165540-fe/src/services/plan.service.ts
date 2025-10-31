@@ -1,4 +1,4 @@
-import type { ApiResponse, CreatePlanRequest, PlanData, LocationData } from '@/interface/plan.interface'
+import type { ApiResponse, CreatePlanRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 
@@ -21,6 +21,22 @@ export const planApi = {
       return json.data
     } catch (error) {
       console.error('Error creating plan:', error)
+      throw error
+    }
+  },
+
+  async getPlanDetail(planId: string): Promise<PlanDetailData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/packages/plans/${planId}`)
+      const json: ApiResponse<PlanDetailData> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to fetch plan detail')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error fetching plan detail:', error)
       throw error
     }
   },

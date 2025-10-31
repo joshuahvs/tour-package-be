@@ -11,6 +11,33 @@ export interface PlanData {
   activitiesCount: number
 }
 
+export interface OrderedQuantityData {
+  id: string
+  activityName: string
+  activityId: string
+  startDate: string
+  endDate: string
+  price: number
+  quota: number
+  orderedQuota: number
+  total: number
+}
+
+export interface PlanDetailData {
+  id: string
+  planName: string
+  activityType: string
+  status: string
+  totalPrice: number
+  startDate: string
+  endDate: string
+  startLocation: string
+  endLocation: string
+  packageId: string
+  packageName: string
+  orderedQuantities: OrderedQuantityData[]
+}
+
 export interface CreatePlanRequest {
   planName: string
   activityType: string

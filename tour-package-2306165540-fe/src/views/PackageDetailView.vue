@@ -112,7 +112,7 @@
                 </td>
                 <td class="text-center">{{ plan.activitiesCount }}</td>
                 <td>
-                  <button class="btn btn-view btn-sm">View</button>
+                  <button class="btn btn-view btn-sm" @click="handleViewPlan(plan.id)">View</button>
                 </td>
               </tr>
             </tbody>
@@ -269,6 +269,10 @@ const handleEdit = () => {
   }
   const id = route.params.id as string
   router.push(`/packages/${id}/edit`)
+}
+
+const handleViewPlan = (planId: string) => {
+  router.push(`/plans/${planId}`)
 }
 
 const handleCreatePlan = () => {
