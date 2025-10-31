@@ -6,6 +6,7 @@ import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePlanRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdatePlanRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.OrderedQuantityResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
@@ -89,6 +90,62 @@ public class PlanRestServiceImpl implements PlanRestService {
                 .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
 
         return toPlanDetailResponseDTO(plan);
+    }
+
+    @Override
+    public PlanDetailResponseDTO updatePlan(UUID planId, UpdatePlanRequestDTO requestDTO) {
+        // Get the plan
+        Plan plan = planRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
+
+        // Validate: Plan tidak boleh memiliki OrderedQuantity
+        if (plan.getOrderedQuantities() != null && !plan.getOrderedQuantities().isEmpty()) {
+            throw new RuntimeException("Cannot edit plan. Plan must not have any ordered activities.");
+        }
+
+        // Validate: Package harus memiliki status "Pending"
+        if (!"PENDING".equalsIgnoreCase(plan.getPackageEntity().getStatus())) {
+            throw new RuntimeException("Cannot edit plan. Package must have status 'Pending'.");
+        }
+
+        // Validate: EndDate tidak boleh lebih dahulu daripada startDate
+        if (requestDTO.getEndDate().isBefore(requestDTO.getStartDate()) ||
+                requestDTO.getEndDate().isEqual(requestDTO.getStartDate())) {
+            throw new RuntimeException("End date must be after start date.");
+        }
+
+        // Validate: StartDate tidak boleh lebih dahulu daripada startDate Package
+        if (requestDTO.getStartDate().isBefore(plan.getPackageEntity().getStartDate())) {
+            throw new RuntimeException("Plan start date cannot be before package start date (" +
+                    plan.getPackageEntity().getStartDate() + ").");
+        }
+
+        // Validate: EndDate tidak boleh setelah EndDate Package
+        if (requestDTO.getEndDate().isAfter(plan.getPackageEntity().getEndDate())) {
+            throw new RuntimeException("Plan end date cannot be after package end date (" +
+                    plan.getPackageEntity().getEndDate() + ").");
+        }
+
+        // Validate: StartLocation dan endLocation untuk ActivityType Accommodation
+        // harus sama
+        if ("Accommodation".equalsIgnoreCase(plan.getActivityType())) {
+            if (!requestDTO.getStartLocation().equals(requestDTO.getEndLocation())) {
+                throw new RuntimeException(
+                        "Start location and end location must be the same for Accommodation activity type.");
+            }
+        }
+
+        // Update plan fields
+        plan.setPlanName(requestDTO.getPlanName());
+        plan.setStartDate(requestDTO.getStartDate());
+        plan.setEndDate(requestDTO.getEndDate());
+        plan.setStartLocation(requestDTO.getStartLocation());
+        plan.setEndLocation(requestDTO.getEndLocation());
+
+        // Save updated plan
+        Plan updatedPlan = planRepository.save(plan);
+
+        return toPlanDetailResponseDTO(updatedPlan);
     }
 
     private PlanResponseDTO toPlanResponseDTO(Plan plan) {
