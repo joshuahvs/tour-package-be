@@ -1,16 +1,21 @@
 package apap.ti._5.tour_package_2306165540_be.restservice;
 
+import apap.ti._5.tour_package_2306165540_be.model.OrderedQuantity;
 import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePlanRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.OrderedQuantityResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -78,6 +83,14 @@ public class PlanRestServiceImpl implements PlanRestService {
         return toPlanResponseDTO(savedPlan);
     }
 
+    @Override
+    public PlanDetailResponseDTO getPlanDetail(UUID planId) {
+        Plan plan = planRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
+
+        return toPlanDetailResponseDTO(plan);
+    }
+
     private PlanResponseDTO toPlanResponseDTO(Plan plan) {
         PlanResponseDTO dto = new PlanResponseDTO();
         dto.setId(plan.getId());
@@ -90,6 +103,43 @@ public class PlanRestServiceImpl implements PlanRestService {
         dto.setStartLocation(plan.getStartLocation());
         dto.setEndLocation(plan.getEndLocation());
         dto.setActivitiesCount(plan.getOrderedQuantities() != null ? plan.getOrderedQuantities().size() : 0);
+        return dto;
+    }
+
+    private PlanDetailResponseDTO toPlanDetailResponseDTO(Plan plan) {
+        PlanDetailResponseDTO dto = new PlanDetailResponseDTO();
+        dto.setId(plan.getId());
+        dto.setPlanName(plan.getPlanName());
+        dto.setActivityType(plan.getActivityType());
+        dto.setStatus(plan.getStatus());
+        dto.setTotalPrice(plan.getPrice());
+        dto.setStartDate(plan.getStartDate());
+        dto.setEndDate(plan.getEndDate());
+        dto.setStartLocation(plan.getStartLocation());
+        dto.setEndLocation(plan.getEndLocation());
+        dto.setPackageId(plan.getPackageEntity().getId());
+        dto.setPackageName(plan.getPackageEntity().getPackageName());
+
+        // Convert ordered quantities
+        List<OrderedQuantityResponseDTO> orderedQuantityDTOs = plan.getOrderedQuantities().stream()
+                .map(this::toOrderedQuantityResponseDTO)
+                .collect(Collectors.toList());
+        dto.setOrderedQuantities(orderedQuantityDTOs);
+
+        return dto;
+    }
+
+    private OrderedQuantityResponseDTO toOrderedQuantityResponseDTO(OrderedQuantity orderedQuantity) {
+        OrderedQuantityResponseDTO dto = new OrderedQuantityResponseDTO();
+        dto.setId(orderedQuantity.getId());
+        dto.setActivityName(orderedQuantity.getActivity().getActivityName());
+        dto.setActivityId(orderedQuantity.getActivity().getId());
+        dto.setStartDate(orderedQuantity.getStartDate());
+        dto.setEndDate(orderedQuantity.getEndDate());
+        dto.setPrice(orderedQuantity.getPrice());
+        dto.setQuota(orderedQuantity.getQuota());
+        dto.setOrderedQuota(orderedQuantity.getOrderedQuota());
+        dto.setTotal(orderedQuantity.getPrice() * orderedQuantity.getOrderedQuota());
         return dto;
     }
 }
