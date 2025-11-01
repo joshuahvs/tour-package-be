@@ -25,9 +25,15 @@ public class OrderedQuantity {
     @JoinColumn(name = "plan_id", referencedColumnName = "id", nullable = false)
     private Plan plan;
 
+    // Legacy relationship (when activity was an Activity entity). Now optional.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "activity_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "activity_id", referencedColumnName = "id", nullable = true)
     private Activity activity;
+
+    // New relationship: activity can be another Plan selected as an activity
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "activity_plan_id", referencedColumnName = "id")
+    private Plan activityPlan;
 
     @Column(name = "ordered_quota", nullable = false)
     private int orderedQuota;
