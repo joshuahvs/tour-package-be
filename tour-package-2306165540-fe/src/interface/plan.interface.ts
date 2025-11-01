@@ -55,6 +55,11 @@ export interface UpdatePlanRequest {
   endLocation: string
 }
 
+export interface AddOrderedQuantityRequest {
+  activityId: string
+  orderedQuantity: number
+}
+
 export interface LocationData {
   code: string
   name: string

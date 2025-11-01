@@ -1,4 +1,4 @@
-import type { ApiResponse, CreatePlanRequest, UpdatePlanRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
+import type { ApiResponse, CreatePlanRequest, UpdatePlanRequest, AddOrderedQuantityRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 
@@ -75,6 +75,44 @@ export const planApi = {
       return json.data
     } catch (error) {
       console.error('Error updating plan:', error)
+      throw error
+    }
+  },
+
+  async addOrderedQuantity(planId: string, data: AddOrderedQuantityRequest): Promise<PlanDetailData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ordered-activities/create?planId=${planId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+      const json: ApiResponse<PlanDetailData> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to add activity to plan')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error adding activity to plan:', error)
+      throw error
+    }
+  },
+
+  async getAvailablePlansForActivity(planId: string): Promise<PlanData[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/plans/${planId}/available-activities`)
+      const json: ApiResponse<PlanData[]> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to fetch available activities')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error fetching available activities:', error)
       throw error
     }
   },
