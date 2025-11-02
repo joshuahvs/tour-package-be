@@ -1,4 +1,4 @@
-import type { ApiResponse, CreatePlanRequest, UpdatePlanRequest, AddOrderedQuantityRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
+import type { ApiResponse, CreatePlanRequest, UpdatePlanRequest, AddOrderedQuantityRequest, UpdateOrderedQuantityRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 
@@ -97,6 +97,28 @@ export const planApi = {
       return json.data
     } catch (error) {
       console.error('Error adding activity to plan:', error)
+      throw error
+    }
+  },
+
+  async updateOrderedQuantity(orderedQuantityId: string, data: UpdateOrderedQuantityRequest): Promise<PlanDetailData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ordered-activities/${orderedQuantityId}/edit`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+      const json: ApiResponse<PlanDetailData> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to update ordered activity quantity')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error updating ordered activity quantity:', error)
       throw error
     }
   },

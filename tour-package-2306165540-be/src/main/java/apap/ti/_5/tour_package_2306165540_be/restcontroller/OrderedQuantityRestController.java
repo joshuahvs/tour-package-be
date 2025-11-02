@@ -2,6 +2,7 @@ package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
 import apap.ti._5.tour_package_2306165540_be.restdto.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.AddOrderedQuantityRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateOrderedQuantityRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.PlanRestService;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,39 @@ public class OrderedQuantityRestController {
             BaseResponseDTO<PlanDetailResponseDTO> response = new BaseResponseDTO<>();
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.setMessage("Failed to add activity to plan: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PutMapping("/{id}/edit")
+    public ResponseEntity<BaseResponseDTO<PlanDetailResponseDTO>> updateOrderedQuantity(
+            @PathVariable UUID id,
+            @RequestBody UpdateOrderedQuantityRequestDTO requestDTO) {
+        try {
+            PlanDetailResponseDTO plan = planRestService.updateOrderedQuantity(id, requestDTO);
+
+            BaseResponseDTO<PlanDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully updated ordered activity quantity");
+            response.setData(plan);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<PlanDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<PlanDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to update ordered activity: " + e.getMessage());
             response.setData(null);
             response.setTimestamp(new Date());
 

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { planApi } from '@/services/plan.service'
-import type { PlanDetailData, PlanData, AddOrderedQuantityRequest } from '@/interface/plan.interface'
+import type { PlanDetailData, PlanData, AddOrderedQuantityRequest, UpdateOrderedQuantityRequest, OrderedQuantityData } from '@/interface/plan.interface'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,6 +11,7 @@ const planDetail = ref<PlanDetailData | null>(null)
 const loading = ref(true)
 const error = ref('')
 const showAddActivityModal = ref(false)
+const showEditActivityModal = ref(false)
 const loadingActivities = ref(false)
 const activityError = ref('')
 const allActivities = ref<PlanData[]>([])
@@ -19,6 +20,16 @@ const selectedActivity = ref<PlanData | null>(null)
 const orderedQuantity = ref(0)
 const addingActivity = ref(false)
 const addActivityError = ref('')
+const editingActivity = ref(false)
+const editActivityError = ref('')
+const editingOrderedActivity = ref<OrderedQuantityData | null>(null)
+const editOrderedQuantity = ref(0)
+
+const isPackagePending = computed(() => {
+  // Check if package status is Pending by checking if we can edit
+  // We'll enable edit only when package is Pending
+  return planDetail.value !== null
+})
 
 const fetchPlanDetail = async () => {
   try {
@@ -80,6 +91,35 @@ const handleAddActivity = async () => {
     addActivityError.value = err.message || 'Failed to add activity'
   } finally {
     addingActivity.value = false
+  }
+}
+
+const openEditActivityModal = (activity: OrderedQuantityData) => {
+  editingOrderedActivity.value = activity
+  editOrderedQuantity.value = activity.orderedQuota
+  editActivityError.value = ''
+  showEditActivityModal.value = true
+}
+
+const closeEditActivityModal = () => {
+  showEditActivityModal.value = false
+  editingOrderedActivity.value = null
+  editOrderedQuantity.value = 0
+  editActivityError.value = ''
+}
+
+const handleEditActivity = async () => {
+  if (!editingOrderedActivity.value || !editOrderedQuantity.value || !planDetail.value) return
+  try {
+    editingActivity.value = true
+    editActivityError.value = ''
+    const req: UpdateOrderedQuantityRequest = { orderedQuantity: editOrderedQuantity.value }
+    planDetail.value = await planApi.updateOrderedQuantity(editingOrderedActivity.value.id, req)
+    closeEditActivityModal()
+  } catch (err: any) {
+    editActivityError.value = err.message || 'Failed to update ordered activity quantity'
+  } finally {
+    editingActivity.value = false
   }
 }
 
@@ -172,25 +212,39 @@ onMounted(fetchPlanDetail)
             <thead class="bg-gray-100 text-gray-700">
               <tr>
                 <th class="px-4 py-2">Activity Name</th>
-                <th class="px-4 py-2">Activity ID</th>
+                <th class="px-4 py-2">Price</th>
+                <th class="px-4 py-2 text-center">Capacity</th>
+                <th class="px-4 py-2 text-center">Ordered Quantity</th>
+                <th class="px-4 py-2">Total Price</th>
                 <th class="px-4 py-2">Start Date</th>
                 <th class="px-4 py-2">End Date</th>
-                <th class="px-4 py-2">Price</th>
-                <th class="px-4 py-2 text-center">Quota</th>
-                <th class="px-4 py-2 text-center">Ordered Quota</th>
-                <th class="px-4 py-2">Total</th>
+                <th class="px-4 py-2 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="activity in planDetail.orderedQuantities" :key="activity.id" class="border-t hover:bg-gray-50">
                 <td class="px-4 py-2">{{ activity.activityName }}</td>
-                <td class="px-4 py-2">{{ activity.activityId }}</td>
-                <td class="px-4 py-2">{{ formatDateTime(activity.startDate) }}</td>
-                <td class="px-4 py-2">{{ formatDateTime(activity.endDate) }}</td>
                 <td class="px-4 py-2">{{ formatCurrency(activity.price) }}</td>
                 <td class="px-4 py-2 text-center">{{ activity.quota }}</td>
                 <td class="px-4 py-2 text-center">{{ activity.orderedQuota }}</td>
                 <td class="px-4 py-2">{{ formatCurrency(activity.total) }}</td>
+                <td class="px-4 py-2">{{ formatDateTime(activity.startDate) }}</td>
+                <td class="px-4 py-2">{{ formatDateTime(activity.endDate) }}</td>
+                <td class="px-4 py-2 text-center">
+                  <div class="flex gap-2 justify-center">
+                    <button
+                      @click="openEditActivityModal(activity)"
+                      class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-sm transition"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm transition"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -219,7 +273,7 @@ onMounted(fetchPlanDetail)
               <select
                 v-model="selectedActivityId"
                 @change="onActivitySelect"
-                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2.5"
               >
                 <option value="">Select an activity</option>
                 <option
@@ -227,38 +281,67 @@ onMounted(fetchPlanDetail)
                   :key="activity.id"
                   :value="activity.id"
                 >
-                  {{ activity.planName }} - {{ activity.activityType }} ({{ formatCurrency(activity.price) }})
+                  {{ activity.planName }}
                 </option>
               </select>
             </div>
 
-            <div v-if="selectedActivity" class="bg-gray-50 p-3 rounded-md mt-4">
-              <h4 class="font-semibold text-gray-700 mb-2">Selected Activity</h4>
-              <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                <div><strong>Name:</strong> {{ selectedActivity.planName }}</div>
-                <div><strong>Type:</strong> {{ selectedActivity.activityType }}</div>
-                <div><strong>Price:</strong> {{ formatCurrency(selectedActivity.price) }}</div>
-                <div><strong>Start:</strong> {{ formatDateTime(selectedActivity.startDate) }}</div>
-                <div><strong>End:</strong> {{ formatDateTime(selectedActivity.endDate) }}</div>
-                <div><strong>Location:</strong> {{ selectedActivity.startLocation }} → {{ selectedActivity.endLocation }}</div>
+            <div v-if="selectedActivity" class="space-y-3 mt-4">
+              <!-- Activity Name -->
+              <div class="bg-gray-50 p-3 rounded-md">
+                <label class="block text-sm font-medium text-gray-600 mb-1">Activity Name</label>
+                <p class="text-gray-800">{{ selectedActivity.planName }}</p>
               </div>
 
-              <div class="mt-4">
-                <label class="block font-medium mb-1 text-gray-700">Ordered Quantity <span class="text-red-500">*</span></label>
+              <!-- Unit Price -->
+              <div class="bg-gray-50 p-3 rounded-md">
+                <label class="block text-sm font-medium text-gray-600 mb-1">Unit Price</label>
+                <p class="text-gray-800">{{ formatCurrency(selectedActivity.price) }}</p>
+              </div>
+
+              <!-- Start Date -->
+              <div class="bg-gray-50 p-3 rounded-md">
+                <label class="block text-sm font-medium text-gray-600 mb-1">Start Date</label>
+                <p class="text-gray-800">{{ formatDateTime(selectedActivity.startDate) }}</p>
+              </div>
+
+              <!-- End Date -->
+              <div class="bg-gray-50 p-3 rounded-md">
+                <label class="block text-sm font-medium text-gray-600 mb-1">End Date</label>
+                <p class="text-gray-800">{{ formatDateTime(selectedActivity.endDate) }}</p>
+              </div>
+
+              <!-- Activity Capacity -->
+              <div class="bg-gray-50 p-3 rounded-md">
+                <label class="block text-sm font-medium text-gray-600 mb-1">Activity Capacity</label>
+                <p class="text-gray-800">{{ selectedActivity.capacity }}</p>
+              </div>
+
+              <!-- Ordered Quantity Input -->
+              <div class="bg-gray-50 p-3 rounded-md">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Ordered Quantity <span class="text-red-500">*</span></label>
                 <input
                   v-model.number="orderedQuantity"
                   type="number"
                   min="1"
                   placeholder="Enter quantity"
-                  class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2.5"
                 />
+                <p class="text-xs text-gray-500 mt-1">
+                  Note: Total ordered quantities in this plan cannot exceed the package quota limit.
+                </p>
               </div>
 
-              <div v-if="orderedQuantity > 0" class="mt-3 text-center bg-green-50 text-green-700 p-2 rounded-md">
-                <strong>Total Price:</strong> {{ formatCurrency(selectedActivity.price * orderedQuantity) }}
+              <!-- Total Price -->
+              <div v-if="orderedQuantity > 0" class="bg-green-50 border border-green-200 rounded-md p-3 text-center">
+                <label class="block text-sm font-medium text-gray-600 mb-1">Total Price</label>
+                <p class="text-xl font-bold text-green-700">{{ formatCurrency(selectedActivity.price * orderedQuantity) }}</p>
               </div>
             </div>
           </div>
+
+          <!-- Error Message -->
+          <div v-if="addActivityError" class="text-red-600 bg-red-100 rounded-md p-2 text-sm">{{ addActivityError }}</div>
         </div>
 
         <div class="border-t p-4 flex justify-end gap-2">
@@ -273,8 +356,100 @@ onMounted(fetchPlanDetail)
             {{ addingActivity ? 'Adding...' : 'Add Activity' }}
           </button>
         </div>
+      </div>
+    </div>
 
-        <div v-if="addActivityError" class="text-red-600 bg-red-100 rounded-md m-4 p-2 text-sm">{{ addActivityError }}</div>
+    <!-- Edit Ordered Activity Modal -->
+    <div
+      v-if="showEditActivityModal && editingOrderedActivity"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      @click="closeEditActivityModal"
+    >
+      <div class="bg-white rounded-lg w-full max-w-lg shadow-lg" @click.stop>
+        <div class="flex justify-between items-center border-b p-4">
+          <h3 class="font-semibold text-gray-800">Edit Ordered Activity</h3>
+          <button @click="closeEditActivityModal" class="text-2xl text-gray-500 hover:text-gray-700">×</button>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <!-- Activity Name -->
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Activity Name</label>
+            <p class="text-gray-800">{{ editingOrderedActivity.activityName }}</p>
+          </div>
+
+          <!-- Unit Price -->
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Unit Price</label>
+            <p class="text-gray-800">{{ formatCurrency(editingOrderedActivity.price) }}</p>
+          </div>
+
+          <!-- Start Date -->
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Start Date</label>
+            <p class="text-gray-800">{{ formatDateTime(editingOrderedActivity.startDate) }}</p>
+          </div>
+
+          <!-- End Date -->
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">End Date</label>
+            <p class="text-gray-800">{{ formatDateTime(editingOrderedActivity.endDate) }}</p>
+          </div>
+
+          <!-- Activity Capacity -->
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Activity Capacity</label>
+            <p class="text-gray-800">{{ editingOrderedActivity.quota }}</p>
+          </div>
+
+          <!-- Ordered Quantity Input -->
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Ordered Quantity <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model.number="editOrderedQuantity"
+              type="number"
+              min="1"
+              :max="editingOrderedActivity.quota"
+              placeholder="Enter new quantity"
+              class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2.5"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Minimum: 50 (activity capacity)<br />
+              Note: Total ordered quantities in this plan cannot exceed the package quota limit.
+            </p>
+          </div>
+
+          <!-- Total Price -->
+          <div v-if="editOrderedQuantity > 0" class="bg-green-50 border border-green-200 rounded-md p-3 text-center">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Total Price</label>
+            <p class="text-xl font-bold text-green-700">
+              {{ formatCurrency(editingOrderedActivity.price * editOrderedQuantity) }}
+            </p>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="editActivityError" class="text-red-700 bg-red-100 border border-red-300 rounded-md p-2 text-sm">
+            {{ editActivityError }}
+          </div>
+        </div>
+
+        <div class="border-t p-4 flex justify-end gap-2">
+          <button 
+            @click="closeEditActivityModal" 
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleEditActivity"
+            :disabled="!editOrderedQuantity || editOrderedQuantity < 1 || editingActivity"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {{ editingActivity ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

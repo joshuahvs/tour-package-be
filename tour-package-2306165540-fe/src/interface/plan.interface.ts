@@ -9,6 +9,7 @@ export interface PlanData {
   startLocation: string
   endLocation: string
   activitiesCount: number
+  capacity: number
 }
 
 export interface OrderedQuantityData {
@@ -57,6 +58,10 @@ export interface UpdatePlanRequest {
 
 export interface AddOrderedQuantityRequest {
   activityId: string
+  orderedQuantity: number
+}
+
+export interface UpdateOrderedQuantityRequest {
   orderedQuantity: number
 }
 

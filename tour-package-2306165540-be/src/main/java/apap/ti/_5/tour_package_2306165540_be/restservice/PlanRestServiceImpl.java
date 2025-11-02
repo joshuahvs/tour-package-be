@@ -9,6 +9,7 @@ import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.AddOrderedQuantityRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePlanRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdatePlanRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateOrderedQuantityRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.OrderedQuantityResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
@@ -341,6 +342,77 @@ public class PlanRestServiceImpl implements PlanRestService {
         dto.setStartLocation(plan.getStartLocation());
         dto.setEndLocation(plan.getEndLocation());
         dto.setActivitiesCount(plan.getOrderedQuantities().size());
+        // Set capacity from package quota
+        if (plan.getPackageEntity() != null) {
+            dto.setCapacity(plan.getPackageEntity().getQuota());
+        } else {
+            dto.setCapacity(0);
+        }
         return dto;
+    }
+
+    @Override
+    public PlanDetailResponseDTO updateOrderedQuantity(UUID orderedQuantityId,
+            UpdateOrderedQuantityRequestDTO requestDTO) {
+        // Get the ordered quantity
+        OrderedQuantity orderedQuantity = orderedQuantityRepository.findById(orderedQuantityId)
+                .orElseThrow(() -> new RuntimeException("Ordered quantity not found with id: " + orderedQuantityId));
+
+        // Get the plan
+        Plan plan = orderedQuantity.getPlan();
+        Package pkg = plan.getPackageEntity();
+
+        // Validation 1: Package status must be PENDING
+        if (!"PENDING".equals(pkg.getStatus())) {
+            throw new RuntimeException("Cannot edit ordered activity. Package status must be PENDING");
+        }
+
+        // Validation 2: New ordered quantity must be at least 1
+        if (requestDTO.getOrderedQuantity() < 1) {
+            throw new RuntimeException("Ordered quantity must be at least 1");
+        }
+
+        // Validation 3: Check if new ordered quantity exceeds activity capacity
+        int activityCapacity = orderedQuantity.getQuota();
+        if (requestDTO.getOrderedQuantity() > activityCapacity) {
+            throw new RuntimeException("Ordered quantity cannot exceed activity capacity (" + activityCapacity + ")");
+        }
+
+        // Validation 4: Check total ordered quantity doesn't exceed package quota
+        int currentOrderedQuantity = orderedQuantity.getOrderedQuota();
+        int otherOrderedQuantities = plan.getOrderedQuantities().stream()
+                .filter(oq -> !oq.getId().equals(orderedQuantityId))
+                .mapToInt(OrderedQuantity::getOrderedQuota)
+                .sum();
+
+        if (otherOrderedQuantities + requestDTO.getOrderedQuantity() > pkg.getQuota()) {
+            throw new RuntimeException("Total ordered quantity cannot exceed package quota (" + pkg.getQuota() + ")");
+        }
+
+        // Update the ordered quantity
+        orderedQuantity.setOrderedQuota(requestDTO.getOrderedQuantity());
+        orderedQuantityRepository.save(orderedQuantity);
+
+        // Recalculate total price
+        long totalPrice = plan.getOrderedQuantities().stream()
+                .mapToLong(oq -> (long) oq.getPrice() * oq.getOrderedQuota())
+                .sum();
+        plan.setPrice(totalPrice);
+
+        // Update plan status based on total ordered quantity
+        int totalOrderedQuantity = plan.getOrderedQuantities().stream()
+                .mapToInt(OrderedQuantity::getOrderedQuota)
+                .sum();
+
+        if (totalOrderedQuantity == pkg.getQuota()) {
+            plan.setStatus("Fulfilled");
+        } else {
+            plan.setStatus("Unfulfilled");
+        }
+
+        planRepository.save(plan);
+
+        // Return updated plan details
+        return getPlanDetail(plan.getId());
     }
 }

@@ -3,6 +3,7 @@ package apap.ti._5.tour_package_2306165540_be.restservice;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.AddOrderedQuantityRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePlanRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdatePlanRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateOrderedQuantityRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
 
@@ -17,6 +18,8 @@ public interface PlanRestService {
     PlanDetailResponseDTO updatePlan(UUID planId, UpdatePlanRequestDTO requestDTO);
 
     PlanDetailResponseDTO addOrderedQuantity(UUID planId, AddOrderedQuantityRequestDTO requestDTO);
+
+    PlanDetailResponseDTO updateOrderedQuantity(UUID orderedQuantityId, UpdateOrderedQuantityRequestDTO requestDTO);
 
     List<PlanResponseDTO> getAvailablePlansForActivity(UUID planId);
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { planApi } from '@/services/plan.service';
 import type { PlanDetailData, LocationData, UpdatePlanRequest } from '@/interface/plan.interface';
@@ -65,23 +65,34 @@ const loadPlanData = async () => {
     loading.value = true;
     error.value = '';
 
-    const [planData, locationsData] = await Promise.all([
-      planApi.getPlanDetail(planId),
-      planApi.getLocations()
-    ]);
-
-    planDetail.value = planData;
+    // Load locations first to ensure they're available for the select dropdowns
+    locations.value = await planApi.getLocations();
+    console.log('Loaded locations:', locations.value);
     
-    // Pre-populate form with existing data
-    formData.value = {
-      planName: planData.planName,
-      startDate: formatDateForInput(planData.startDate),
-      endDate: formatDateForInput(planData.endDate),
-      startLocation: planData.startLocation,
-      endLocation: planData.endLocation
-    };
-
-    locations.value = locationsData;
+    // Then load plan data
+    const planData = await planApi.getPlanDetail(planId);
+    planDetail.value = planData;
+    console.log('Loaded plan data:', planData);
+    console.log('Plan startLocation:', planData.startLocation);
+    console.log('Plan endLocation:', planData.endLocation);
+    
+    // Wait for next tick to ensure DOM is updated with locations
+    await nextTick();
+    
+    // Pre-populate form with existing data - ensure exact match with location names
+    formData.value.planName = planData.planName;
+    formData.value.startDate = formatDateForInput(planData.startDate);
+    formData.value.endDate = formatDateForInput(planData.endDate);
+    formData.value.startLocation = planData.startLocation;
+    formData.value.endLocation = planData.endLocation;
+    
+    console.log('Form data after setting:', formData.value);
+    
+    // Additional check: verify if the location values match any option
+    const startLocationMatch = locations.value.find(loc => loc.name === planData.startLocation);
+    const endLocationMatch = locations.value.find(loc => loc.name === planData.endLocation);
+    console.log('Start location match:', startLocationMatch);
+    console.log('End location match:', endLocationMatch);
   } catch (err: any) {
     error.value = err.message || 'Failed to load plan data';
   } finally {
@@ -213,7 +224,7 @@ onMounted(() => {
           required
           class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">Select start location</option>
+          <option value="" disabled>Select start location</option>
           <option
             v-for="location in locations"
             :key="location.code"
@@ -235,7 +246,7 @@ onMounted(() => {
           required
           class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">Select end location</option>
+          <option value="" disabled>Select end location</option>
           <option
             v-for="location in locations"
             :key="location.code"

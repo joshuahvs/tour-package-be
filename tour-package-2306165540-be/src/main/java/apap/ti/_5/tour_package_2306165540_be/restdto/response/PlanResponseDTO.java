@@ -21,4 +21,5 @@ public class PlanResponseDTO {
     private String startLocation;
     private String endLocation;
     private int activitiesCount;
+    private int capacity; // Package quota as capacity
 }
