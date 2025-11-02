@@ -1,107 +1,3 @@
-<template>
-  <div class="create-package-view">
-    <h1 class="page-title">Create New Package</h1>
-
-    <div class="form-container">
-      <div class="form-header">
-        <h2>Package Information</h2>
-      </div>
-
-      <form @submit.prevent="handleSubmit" class="package-form">
-        <div class="form-group">
-          <label for="packageName" class="form-label">
-            Package Name <span class="required">*</span>
-          </label>
-          <input
-            id="packageName"
-            v-model="formData.packageName"
-            type="text"
-            class="form-input"
-            placeholder="Jakarta - Bali Adventure Package"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="userId" class="form-label">
-            User ID <span class="required">*</span>
-          </label>
-          <input
-            id="userId"
-            v-model="formData.userId"
-            type="text"
-            class="form-input"
-            placeholder="user001"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="startDate" class="form-label">
-            Start Date <span class="required">*</span>
-          </label>
-          <input
-            id="startDate"
-            v-model="formData.startDate"
-            type="datetime-local"
-            class="form-input"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="endDate" class="form-label">
-            End Date <span class="required">*</span>
-          </label>
-          <input
-            id="endDate"
-            v-model="formData.endDate"
-            type="datetime-local"
-            class="form-input"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="quota" class="form-label">
-            Quota <span class="required">*</span>
-          </label>
-          <input
-            id="quota"
-            v-model.number="formData.quota"
-            type="number"
-            class="form-input"
-            placeholder="25"
-            min="1"
-            required
-          />
-        </div>
-
-        <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
-
-        <div class="form-actions">
-          <button 
-            type="submit" 
-            class="btn btn-primary"
-            :disabled="isSubmitting"
-          >
-            {{ isSubmitting ? 'Creating...' : 'Create Package' }}
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-secondary"
-            @click="handleCancel"
-            :disabled="isSubmitting"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
@@ -123,16 +19,13 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 
 const validateForm = (): boolean => {
-  // Reset error
   errorMessage.value = ''
 
-  // Check if all fields are filled
   if (!formData.packageName || !formData.userId || !formData.startDate || !formData.endDate) {
     errorMessage.value = 'All fields are required'
     return false
   }
 
-  // Check if end date is after start date
   const startDate = new Date(formData.startDate)
   const endDate = new Date(formData.endDate)
 
@@ -141,7 +34,6 @@ const validateForm = (): boolean => {
     return false
   }
 
-  // Check quota
   if (formData.quota < 1) {
     errorMessage.value = 'Quota must be at least 1'
     return false
@@ -151,15 +43,13 @@ const validateForm = (): boolean => {
 }
 
 const handleSubmit = async () => {
-  if (!validateForm()) {
-    return
-  }
+  if (!validateForm()) return
 
   isSubmitting.value = true
   errorMessage.value = ''
 
   try {
-    const createdPackage = await packageApi.createPackage(formData)
+    await packageApi.createPackage(formData)
     alert('Package created successfully!')
     router.push('/packages')
   } catch (error: any) {
@@ -171,145 +61,121 @@ const handleSubmit = async () => {
 }
 
 const handleCancel = () => {
-  if (confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
+  if (confirm('Are you sure you want to cancel?')) {
     router.push('/packages')
   }
 }
 </script>
 
-<style scoped>
-.create-package-view {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
+<template>
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Create New Package</h1>
 
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 2rem;
-}
+    <div class="bg-white rounded-lg shadow">
+      <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-4 rounded-t-lg">
+        <h2 class="text-lg font-semibold">Package Information</h2>
+      </div>
 
-.form-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
+      <form @submit.prevent="handleSubmit" class="p-6 flex flex-col gap-5">
+        <!-- Package Name -->
+        <div>
+          <label for="packageName" class="block text-sm font-semibold text-gray-700 mb-1">
+            Package Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="packageName"
+            v-model="formData.packageName"
+            type="text"
+            placeholder="Jakarta - Bali Adventure Package"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
 
-.form-header {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
-  padding: 1rem 1.5rem;
-}
+        <!-- User ID -->
+        <div>
+          <label for="userId" class="block text-sm font-semibold text-gray-700 mb-1">
+            User ID <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="userId"
+            v-model="formData.userId"
+            type="text"
+            placeholder="user001"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
 
-.form-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
+        <!-- Start Date -->
+        <div>
+          <label for="startDate" class="block text-sm font-semibold text-gray-700 mb-1">
+            Start Date <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="startDate"
+            v-model="formData.startDate"
+            type="datetime-local"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
 
-.package-form {
-  padding: 2rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+        <!-- End Date -->
+        <div>
+          <label for="endDate" class="block text-sm font-semibold text-gray-700 mb-1">
+            End Date <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="endDate"
+            v-model="formData.endDate"
+            type="datetime-local"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
+        <!-- Quota -->
+        <div>
+          <label for="quota" class="block text-sm font-semibold text-gray-700 mb-1">
+            Quota <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="quota"
+            v-model.number="formData.quota"
+            type="number"
+            placeholder="25"
+            min="1"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        </div>
 
-.form-label {
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.875rem;
-}
+        <!-- Error Message -->
+        <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm">
+          {{ errorMessage }}
+        </div>
 
-.required {
-  color: #ef4444;
-}
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 mt-4">
+          <button
+            type="submit"
+            class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-md transition disabled:opacity-60 disabled:cursor-not-allowed"
+            :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? 'Creating...' : 'Create Package' }}
+          </button>
 
-.form-input {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.form-input::placeholder {
-  color: #9ca3af;
-}
-
-.error-message {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 1rem;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #6366f1;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #4f46e5;
-}
-
-.btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #d1d5db;
-}
-
-@media (max-width: 768px) {
-  .create-package-view {
-    padding: 1rem;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-  }
-}
-</style>
+          <button
+            type="button"
+            @click="handleCancel"
+            class="w-full sm:w-auto bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2.5 px-6 rounded-md transition disabled:opacity-60 disabled:cursor-not-allowed"
+            :disabled="isSubmitting"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>

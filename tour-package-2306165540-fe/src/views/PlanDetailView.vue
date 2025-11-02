@@ -1,217 +1,5 @@
-<template>
-  <div class="plan-detail-view">
-    <button class="back-button" @click="handleBack">
-      ← Back
-    </button>
-
-    <h1 class="page-title">View Plan</h1>
-
-    <div v-if="loading" class="loading">Loading...</div>
-
-    <div v-else-if="error" class="error">{{ error }}</div>
-
-    <div v-else-if="planDetail" class="detail-container">
-      <!-- Plan Information Card -->
-      <div class="info-card">
-        <h2 class="card-title">Plan Information</h2>
-
-        <div class="info-grid">
-          <div class="info-item">
-            <label>Plan Name:</label>
-            <span>{{ planDetail.planName }}</span>
-          </div>
-
-          <div class="info-item">
-            <label>Activity Type:</label>
-            <span>{{ planDetail.activityType }}</span>
-          </div>
-
-          <div class="info-item">
-            <label>Plan Status:</label>
-            <span :class="['status-badge', getStatusClass(planDetail.status)]">
-              {{ planDetail.status }}
-            </span>
-          </div>
-
-          <div class="info-item">
-            <label>Total Price:</label>
-            <span>{{ formatCurrency(planDetail.totalPrice) }}</span>
-          </div>
-
-          <div class="info-item">
-            <label>Start Date:</label>
-            <span>{{ formatDateTime(planDetail.startDate) }}</span>
-          </div>
-
-          <div class="info-item">
-            <label>End Date:</label>
-            <span>{{ formatDateTime(planDetail.endDate) }}</span>
-          </div>
-
-          <div class="info-item">
-            <label>Start Location:</label>
-            <span>{{ planDetail.startLocation }}</span>
-          </div>
-
-          <div class="info-item">
-            <label>End Location:</label>
-            <span>{{ planDetail.endLocation }}</span>
-          </div>
-
-          <div class="info-item">
-            <label>Package:</label>
-            <router-link :to="`/packages/${planDetail.packageId}`" class="package-link">
-              {{ planDetail.packageName }}
-            </router-link>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="btn btn-view" @click="handleViewPackage">View Package</button>
-          <button class="btn btn-edit" @click="handleEditPlan">Edit Plan</button>
-          <button class="btn btn-delete">Delete Plan</button>
-        </div>
-      </div>
-
-      <!-- Ordered Activities Card -->
-      <div class="activities-card">
-        <div class="card-header-with-button">
-          <h2 class="card-title">Ordered Activities</h2>
-          <button class="btn-add" @click="openAddActivityModal" :aria-busy="loadingActivities ? 'true' : 'false'" aria-label="Add Activity to this plan">
-            <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-            </svg>
-            <span>Add Activity</span>
-          </button>
-        </div>
-
-        <div v-if="planDetail.orderedQuantities.length === 0" class="no-data">
-          No activities ordered yet.
-        </div>
-
-        <div v-else class="table-container">
-          <table class="activities-table">
-            <thead>
-              <tr>
-                <th>Activity Name</th>
-                <th>Activity ID</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Price</th>
-                <th>Quota</th>
-                <th>Ordered Quota</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="activity in planDetail.orderedQuantities" :key="activity.id">
-                <td>{{ activity.activityName }}</td>
-                <td>{{ activity.activityId }}</td>
-                <td>{{ formatDateTime(activity.startDate) }}</td>
-                <td>{{ formatDateTime(activity.endDate) }}</td>
-                <td>{{ formatCurrency(activity.price) }}</td>
-                <td class="text-center">{{ activity.quota }}</td>
-                <td class="text-center">{{ activity.orderedQuota }}</td>
-                <td>{{ formatCurrency(activity.total) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Add Activity Modal -->
-    <div v-if="showAddActivityModal" class="modal-overlay" @click="closeAddActivityModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Add Activity to Plan</h3>
-          <button class="btn-close" @click="closeAddActivityModal">×</button>
-        </div>
-
-        <div class="modal-body">
-          <div v-if="loadingActivities" class="loading-small">Loading activities...</div>
-          <div v-else-if="activityError" class="error-small">{{ activityError }}</div>
-          <div v-else>
-            <div class="form-group">
-              <label for="activitySelect">Activity <span class="required">*</span></label>
-              <select id="activitySelect" v-model="selectedActivityId" @change="onActivitySelect">
-                <option value="">Select an activity</option>
-                <option 
-                  v-for="activity in allActivities" 
-                  :key="activity.id" 
-                  :value="activity.id"
-                >
-                  {{ activity.planName }} - {{ activity.activityType }} ({{ formatCurrency(activity.price) }})
-                </option>
-              </select>
-              <small v-if="planDetail" class="helper-text">
-                Showing available plans with matching activity type, dates within range, and matching locations
-              </small>
-            </div>
-
-            <div v-if="selectedActivity" class="activity-details">
-              <h4>Selected Activity Details:</h4>
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <strong>Name:</strong> {{ selectedActivity.planName }}
-                </div>
-                <div class="detail-item">
-                  <strong>Type:</strong> {{ selectedActivity.activityType }}
-                </div>
-                <div class="detail-item">
-                  <strong>Price:</strong> {{ formatCurrency(selectedActivity.price) }}
-                </div>
-                <div class="detail-item">
-                  <strong>Start Date:</strong> {{ formatDateTime(selectedActivity.startDate) }}
-                </div>
-                <div class="detail-item">
-                  <strong>End Date:</strong> {{ formatDateTime(selectedActivity.endDate) }}
-                </div>
-                <div class="detail-item">
-                  <strong>Location:</strong> {{ selectedActivity.startLocation }} → {{ selectedActivity.endLocation }}
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="orderedQuantity">Ordered Quantity <span class="required">*</span></label>
-                <input
-                  id="orderedQuantity"
-                  v-model.number="orderedQuantity"
-                  type="number"
-                  min="1"
-                  required
-                  placeholder="Enter quantity"
-                />
-                <small class="helper-text">Enter the quantity needed for this activity</small>
-              </div>
-
-              <div v-if="orderedQuantity > 0" class="total-price-display">
-                <strong>Total Price:</strong> {{ formatCurrency(selectedActivity.price * orderedQuantity) }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" @click="closeAddActivityModal" class="btn-cancel">Cancel</button>
-          <button 
-            type="button" 
-            @click="handleAddActivity" 
-            :disabled="!selectedActivityId || !orderedQuantity || addingActivity"
-            class="btn-submit"
-          >
-            {{ addingActivity ? 'Adding...' : 'Add Activity' }}
-          </button>
-        </div>
-
-        <div v-if="addActivityError" class="error-message">{{ addActivityError }}</div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { planApi } from '@/services/plan.service'
 import type { PlanDetailData, PlanData, AddOrderedQuantityRequest } from '@/interface/plan.interface'
@@ -222,8 +10,6 @@ const router = useRouter()
 const planDetail = ref<PlanDetailData | null>(null)
 const loading = ref(true)
 const error = ref('')
-
-// Add Activity Modal state
 const showAddActivityModal = ref(false)
 const loadingActivities = ref(false)
 const activityError = ref('')
@@ -239,9 +25,8 @@ const fetchPlanDetail = async () => {
     loading.value = true
     const planId = route.params.id as string
     planDetail.value = await planApi.getPlanDetail(planId)
-  } catch (err) {
+  } catch {
     error.value = 'Failed to load plan details'
-    console.error(err)
   } finally {
     loading.value = false
   }
@@ -249,59 +34,21 @@ const fetchPlanDetail = async () => {
 
 const formatDateTime = (dateString: string) => {
   const date = new Date(dateString)
-  return date.toLocaleString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
+  return date.toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(amount)
-}
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 
-const getStatusClass = (status: string) => {
-  const statusLower = status.toLowerCase()
-  if (statusLower === 'fulfilled') return 'status-success'
-  if (statusLower === 'unfulfilled') return 'status-warning'
-  return 'status-default'
-}
-
-const handleBack = () => {
-  if (planDetail.value) {
-    router.push(`/packages/${planDetail.value.packageId}`)
-  } else {
-    router.push('/packages')
-  }
-}
-
-const handleViewPackage = () => {
-  if (planDetail.value) {
-    router.push(`/packages/${planDetail.value.packageId}`)
-  }
-}
-
-const handleEditPlan = () => {
-  if (planDetail.value) {
-    router.push(`/plans/${planDetail.value.id}/edit`)
-  }
-}
+const handleBack = () => planDetail.value ? router.push(`/packages/${planDetail.value.packageId}`) : router.push('/packages')
+const handleViewPackage = () => planDetail.value && router.push(`/packages/${planDetail.value.packageId}`)
+const handleEditPlan = () => planDetail.value && router.push(`/plans/${planDetail.value.id}/edit`)
 
 const openAddActivityModal = async () => {
   showAddActivityModal.value = true
   loadingActivities.value = true
-  activityError.value = ''
-  
   try {
-    if (planDetail.value) {
-      allActivities.value = await planApi.getAvailablePlansForActivity(planDetail.value.id)
-    }
+    if (planDetail.value) allActivities.value = await planApi.getAvailablePlansForActivity(planDetail.value.id)
   } catch (err: any) {
     activityError.value = err.message || 'Failed to load activities'
   } finally {
@@ -318,33 +65,16 @@ const closeAddActivityModal = () => {
 }
 
 const onActivitySelect = () => {
-  if (selectedActivityId.value) {
-    selectedActivity.value = allActivities.value.find(a => a.id === selectedActivityId.value) || null
-    orderedQuantity.value = 0
-  } else {
-    selectedActivity.value = null
-    orderedQuantity.value = 0
-  }
+  selectedActivity.value = allActivities.value.find(a => a.id === selectedActivityId.value) || null
+  orderedQuantity.value = 0
 }
 
 const handleAddActivity = async () => {
   if (!selectedActivityId.value || !orderedQuantity.value || !planDetail.value) return
-  
   try {
     addingActivity.value = true
-    addActivityError.value = ''
-
-    const requestData: AddOrderedQuantityRequest = {
-      activityId: selectedActivityId.value,
-      orderedQuantity: orderedQuantity.value
-    }
-
-    const updatedPlan = await planApi.addOrderedQuantity(planDetail.value.id, requestData)
-    
-    // Update plan detail with new data
-    planDetail.value = updatedPlan
-    
-    // Close modal and reset
+    const req: AddOrderedQuantityRequest = { activityId: selectedActivityId.value, orderedQuantity: orderedQuantity.value }
+    planDetail.value = await planApi.addOrderedQuantity(planDetail.value.id, req)
     closeAddActivityModal()
   } catch (err: any) {
     addActivityError.value = err.message || 'Failed to add activity'
@@ -353,501 +83,199 @@ const handleAddActivity = async () => {
   }
 }
 
-onMounted(() => {
-  fetchPlanDetail()
-})
+onMounted(fetchPlanDetail)
 </script>
 
-<style scoped>
-.plan-detail-view {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.back-button {
-  background: #f3f4f6;
-  color: #374151;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  margin-bottom: 1rem;
-  transition: background 0.2s;
-}
-
-.back-button:hover {
-  background: #e5e7eb;
-}
-
-.page-title {
-  color: #1f2937;
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 2rem;
-}
-
-.loading,
-.error {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1.125rem;
-}
-
-.error {
-  color: #ef4444;
-  background: #fee2e2;
-  border-radius: 8px;
-}
-
-.detail-container {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.info-card,
-.activities-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.card-title {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
-  font-size: 1.25rem;
-  font-weight: 600;
-  padding: 1.5rem;
-  margin: 0;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  padding: 2rem;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.info-item label {
-  color: #6b7280;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.info-item span {
-  color: #1f2937;
-  font-size: 1rem;
-}
-
-.package-link {
-  color: #6366f1;
-  text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.package-link:hover {
-  color: #4f46e5;
-  text-decoration: underline;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  width: fit-content;
-}
-
-.status-success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.status-default {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-  padding: 2rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex: 1;
-}
-
-.btn-view {
-  background: #6366f1;
-  color: white;
-}
-
-.btn-view:hover {
-  background: #4f46e5;
-}
-
-.btn-edit {
-  background: #10b981;
-  color: white;
-}
-
-.btn-edit:hover {
-  background: #059669;
-}
-
-.btn-delete {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-delete:hover {
-  background: #dc2626;
-}
-
-.no-data {
-  padding: 3rem 2rem;
-  text-align: center;
-  color: #6b7280;
-  font-size: 1.125rem;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.activities-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.activities-table thead {
-  background: #f9fafb;
-}
-
-.activities-table th {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.875rem;
-  border-bottom: 2px solid #e5e7eb;
-  white-space: nowrap;
-}
-
-.activities-table td {
-  padding: 1rem;
-  color: #1f2937;
-  font-size: 0.875rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.activities-table tbody tr:hover {
-  background: #f9fafb;
-}
-
-.text-center {
-  text-align: center;
-}
-
-/* Card Header with Button */
-.card-header-with-button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.card-header-with-button .card-title {
-  margin: 0;
-}
-
-.btn-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.6rem 1rem;
-  border-radius: 9999px; /* pill */
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 8px 18px rgba(99, 102, 241, 0.25);
-  white-space: nowrap;
-}
-
-.btn-add:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(99, 102, 241, 0.35);
-  background: linear-gradient(135deg, #5258ee 0%, #7c3aed 100%);
-}
-
-.btn-add:active {
-  transform: translateY(0);
-  box-shadow: 0 6px 14px rgba(99, 102, 241, 0.25);
-}
-
-.btn-add:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
-}
-
-.btn-add[aria-busy="true"] {
-  opacity: 0.8;
-  cursor: progress;
-}
-
-.btn-icon {
-  width: 18px;
-  height: 18px;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #ddd;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
-  color: #666;
-}
-
-.btn-close:hover {
-  color: #000;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding: 1.5rem;
-  border-top: 1px solid #ddd;
-}
-
-.loading-small {
-  text-align: center;
-  padding: 1rem;
-  color: #666;
-}
-
-.error-small {
-  padding: 1rem;
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #333;
-}
-
-.required {
-  color: #dc3545;
-}
-
-.form-group select,
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.form-group select:focus,
-.form-group input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-.helper-text {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: #666;
-}
-
-.activity-details {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
-
-.activity-details h4 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.detail-item {
-  font-size: 0.9rem;
-}
-
-.detail-item strong {
-  color: #555;
-}
-
-.total-price-display {
-  padding: 1rem;
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 1.1rem;
-  color: #155724;
-}
-
-.btn-cancel,
-.btn-submit {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-.btn-submit {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-submit:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.btn-submit:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-}
-
-@media (max-width: 768px) {
-  .plan-detail-view {
-    padding: 1rem;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-  }
-
-  .table-container {
-    overflow-x: scroll;
-  }
-
-  .card-header-with-button {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
+<template>
+  <div class="max-w-6xl mx-auto p-6">
+    <!-- Back button -->
+    <button
+      @click="handleBack"
+      class="mb-4 inline-flex items-center gap-2 rounded-md bg-gray-100 px-3 py-2 text-gray-700 hover:bg-gray-200 transition"
+    >
+      ← Back
+    </button>
+
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">View Plan</h1>
+
+    <div v-if="loading" class="text-center text-gray-500 py-10">Loading...</div>
+    <div v-else-if="error" class="text-center text-red-600 bg-red-100 py-4 rounded-lg">{{ error }}</div>
+
+    <div v-else-if="planDetail" class="space-y-8">
+      <!-- Plan Information Card -->
+      <div class="bg-white rounded-xl shadow p-6">
+        <h2 class="text-xl font-semibold text-indigo-600 mb-4">Plan Information</h2>
+
+        <div class="grid md:grid-cols-2 gap-4 text-gray-700">
+          <div><span class="font-medium text-gray-500">Plan Name:</span> {{ planDetail.planName }}</div>
+          <div><span class="font-medium text-gray-500">Activity Type:</span> {{ planDetail.activityType }}</div>
+          <div>
+            <span class="font-medium text-gray-500">Plan Status:</span>
+            <span
+              :class="{
+                'bg-green-100 text-green-700 px-2 py-1 rounded-full text-sm': planDetail.status === 'fulfilled',
+                'bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-sm': planDetail.status === 'unfulfilled',
+                'bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm': !['fulfilled','unfulfilled'].includes(planDetail.status)
+              }"
+            >
+              {{ planDetail.status }}
+            </span>
+          </div>
+          <div><span class="font-medium text-gray-500">Total Price:</span> {{ formatCurrency(planDetail.totalPrice) }}</div>
+          <div><span class="font-medium text-gray-500">Start Date:</span> {{ formatDateTime(planDetail.startDate) }}</div>
+          <div><span class="font-medium text-gray-500">End Date:</span> {{ formatDateTime(planDetail.endDate) }}</div>
+          <div><span class="font-medium text-gray-500">Start Location:</span> {{ planDetail.startLocation }}</div>
+          <div><span class="font-medium text-gray-500">End Location:</span> {{ planDetail.endLocation }}</div>
+          <div>
+            <span class="font-medium text-gray-500">Package:</span>
+            <router-link :to="`/packages/${planDetail.packageId}`" class="text-indigo-600 hover:underline">
+              {{ planDetail.packageName }}
+            </router-link>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mt-6 border-t pt-4">
+          <button @click="handleViewPackage" class="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+            View Package
+          </button>
+          <button @click="handleEditPlan" class="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition">
+            Edit Plan
+          </button>
+          <button class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition">
+            Delete Plan
+          </button>
+        </div>
+      </div>
+
+      <!-- Ordered Activities -->
+      <div class="bg-white rounded-xl shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-indigo-600">Ordered Activities</h2>
+          <button
+            @click="openAddActivityModal"
+            :aria-busy="loadingActivities"
+            class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Add Activity
+          </button>
+        </div>
+
+        <div v-if="planDetail.orderedQuantities.length === 0" class="text-center text-gray-500 py-10">
+          No activities ordered yet.
+        </div>
+
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm text-left border border-gray-200">
+            <thead class="bg-gray-100 text-gray-700">
+              <tr>
+                <th class="px-4 py-2">Activity Name</th>
+                <th class="px-4 py-2">Activity ID</th>
+                <th class="px-4 py-2">Start Date</th>
+                <th class="px-4 py-2">End Date</th>
+                <th class="px-4 py-2">Price</th>
+                <th class="px-4 py-2 text-center">Quota</th>
+                <th class="px-4 py-2 text-center">Ordered Quota</th>
+                <th class="px-4 py-2">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="activity in planDetail.orderedQuantities" :key="activity.id" class="border-t hover:bg-gray-50">
+                <td class="px-4 py-2">{{ activity.activityName }}</td>
+                <td class="px-4 py-2">{{ activity.activityId }}</td>
+                <td class="px-4 py-2">{{ formatDateTime(activity.startDate) }}</td>
+                <td class="px-4 py-2">{{ formatDateTime(activity.endDate) }}</td>
+                <td class="px-4 py-2">{{ formatCurrency(activity.price) }}</td>
+                <td class="px-4 py-2 text-center">{{ activity.quota }}</td>
+                <td class="px-4 py-2 text-center">{{ activity.orderedQuota }}</td>
+                <td class="px-4 py-2">{{ formatCurrency(activity.total) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Activity Modal -->
+    <div
+      v-if="showAddActivityModal"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      @click="closeAddActivityModal"
+    >
+      <div class="bg-white rounded-lg w-full max-w-lg shadow-lg" @click.stop>
+        <div class="flex justify-between items-center border-b p-4">
+          <h3 class="font-semibold text-gray-800">Add Activity to Plan</h3>
+          <button @click="closeAddActivityModal" class="text-2xl text-gray-500 hover:text-gray-700">×</button>
+        </div>
+
+        <div class="p-4 space-y-4">
+          <div v-if="loadingActivities" class="text-center text-gray-500">Loading activities...</div>
+          <div v-else-if="activityError" class="text-red-600 bg-red-100 rounded-md p-2">{{ activityError }}</div>
+          <div v-else>
+            <div>
+              <label class="block font-medium mb-1 text-gray-700">Activity <span class="text-red-500">*</span></label>
+              <select
+                v-model="selectedActivityId"
+                @change="onActivitySelect"
+                class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Select an activity</option>
+                <option
+                  v-for="activity in allActivities"
+                  :key="activity.id"
+                  :value="activity.id"
+                >
+                  {{ activity.planName }} - {{ activity.activityType }} ({{ formatCurrency(activity.price) }})
+                </option>
+              </select>
+            </div>
+
+            <div v-if="selectedActivity" class="bg-gray-50 p-3 rounded-md mt-4">
+              <h4 class="font-semibold text-gray-700 mb-2">Selected Activity</h4>
+              <div class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                <div><strong>Name:</strong> {{ selectedActivity.planName }}</div>
+                <div><strong>Type:</strong> {{ selectedActivity.activityType }}</div>
+                <div><strong>Price:</strong> {{ formatCurrency(selectedActivity.price) }}</div>
+                <div><strong>Start:</strong> {{ formatDateTime(selectedActivity.startDate) }}</div>
+                <div><strong>End:</strong> {{ formatDateTime(selectedActivity.endDate) }}</div>
+                <div><strong>Location:</strong> {{ selectedActivity.startLocation }} → {{ selectedActivity.endLocation }}</div>
+              </div>
+
+              <div class="mt-4">
+                <label class="block font-medium mb-1 text-gray-700">Ordered Quantity <span class="text-red-500">*</span></label>
+                <input
+                  v-model.number="orderedQuantity"
+                  type="number"
+                  min="1"
+                  placeholder="Enter quantity"
+                  class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              <div v-if="orderedQuantity > 0" class="mt-3 text-center bg-green-50 text-green-700 p-2 rounded-md">
+                <strong>Total Price:</strong> {{ formatCurrency(selectedActivity.price * orderedQuantity) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t p-4 flex justify-end gap-2">
+          <button @click="closeAddActivityModal" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+            Cancel
+          </button>
+          <button
+            @click="handleAddActivity"
+            :disabled="!selectedActivityId || !orderedQuantity || addingActivity"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {{ addingActivity ? 'Adding...' : 'Add Activity' }}
+          </button>
+        </div>
+
+        <div v-if="addActivityError" class="text-red-600 bg-red-100 rounded-md m-4 p-2 text-sm">{{ addActivityError }}</div>
+      </div>
+    </div>
+  </div>
+</template>

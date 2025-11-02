@@ -1,86 +1,3 @@
-<template>
-  <div class="edit-plan-container">
-    <h1>Edit Plan</h1>
-
-    <div v-if="loading" class="loading">Loading plan data...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-
-    <form v-else @submit.prevent="handleSubmit" class="edit-plan-form">
-      <div class="form-group">
-        <label for="planName">Plan Name <span class="required">*</span></label>
-        <input
-          id="planName"
-          v-model="formData.planName"
-          type="text"
-          required
-          placeholder="Enter plan name"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="activityType">Activity Type</label>
-        <input
-          id="activityType"
-          :value="planDetail?.activityType || ''"
-          type="text"
-          readonly
-          class="readonly"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="startDate">Start Date <span class="required">*</span></label>
-        <input
-          id="startDate"
-          v-model="formData.startDate"
-          type="datetime-local"
-          required
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="endDate">End Date <span class="required">*</span></label>
-        <input
-          id="endDate"
-          v-model="formData.endDate"
-          type="datetime-local"
-          required
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="startLocation">Start Location <span class="required">*</span></label>
-        <select id="startLocation" v-model="formData.startLocation" required>
-          <option value="">Select start location</option>
-          <option v-for="location in locations" :key="location.code" :value="location.name">
-            {{ location.name }}
-          </option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="endLocation">End Location <span class="required">*</span></label>
-        <select id="endLocation" v-model="formData.endLocation" required>
-          <option value="">Select end location</option>
-          <option v-for="location in locations" :key="location.code" :value="location.name">
-            {{ location.name }}
-          </option>
-        </select>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" @click="handleCancel" class="btn-cancel">Cancel</button>
-        <button type="submit" :disabled="submitting" class="btn-submit">
-          {{ submitting ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </div>
-
-      <div v-if="submitError" class="error-message">{{ submitError }}</div>
-      <div v-if="submitSuccess" class="success-message">{{ submitSuccess }}</div>
-    </form>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -218,130 +135,148 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.edit-plan-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-}
+<template>
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-gray-800 mb-8">Edit Plan</h1>
 
-h1 {
-  margin-bottom: 2rem;
-  color: #333;
-}
+    <div v-if="loading" class="text-center text-gray-500 py-10 text-lg">Loading plan data...</div>
+    <div v-else-if="error" class="text-red-700 bg-red-100 border border-red-300 rounded-md px-4 py-3 mb-4 text-center">
+      {{ error }}
+    </div>
 
-.loading,
-.error {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1.1rem;
-}
+    <form v-else @submit.prevent="handleSubmit" class="bg-white rounded-xl shadow-md p-6 space-y-6">
+      <!-- Plan Name -->
+      <div>
+        <label for="planName" class="block text-sm font-semibold text-gray-700 mb-2">
+          Plan Name <span class="text-red-500">*</span>
+        </label>
+        <input
+          id="planName"
+          v-model="formData.planName"
+          type="text"
+          required
+          placeholder="Enter plan name"
+          class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
 
-.error {
-  color: #dc3545;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-}
+      <!-- Activity Type -->
+      <div>
+        <label for="activityType" class="block text-sm font-semibold text-gray-700 mb-2">
+          Activity Type
+        </label>
+        <input
+          id="activityType"
+          :value="planDetail?.activityType || ''"
+          type="text"
+          readonly
+          class="w-full border border-gray-200 bg-gray-100 rounded-md p-2.5 text-gray-500 cursor-not-allowed"
+        />
+      </div>
 
-.edit-plan-form {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+      <!-- Start Date -->
+      <div>
+        <label for="startDate" class="block text-sm font-semibold text-gray-700 mb-2">
+          Start Date <span class="text-red-500">*</span>
+        </label>
+        <input
+          id="startDate"
+          v-model="formData.startDate"
+          type="datetime-local"
+          required
+          class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
 
-.form-group {
-  margin-bottom: 1.5rem;
-}
+      <!-- End Date -->
+      <div>
+        <label for="endDate" class="block text-sm font-semibold text-gray-700 mb-2">
+          End Date <span class="text-red-500">*</span>
+        </label>
+        <input
+          id="endDate"
+          v-model="formData.endDate"
+          type="datetime-local"
+          required
+          class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #333;
-}
+      <!-- Start Location -->
+      <div>
+        <label for="startLocation" class="block text-sm font-semibold text-gray-700 mb-2">
+          Start Location <span class="text-red-500">*</span>
+        </label>
+        <select
+          id="startLocation"
+          v-model="formData.startLocation"
+          required
+          class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select start location</option>
+          <option
+            v-for="location in locations"
+            :key="location.code"
+            :value="location.name"
+          >
+            {{ location.name }}
+          </option>
+        </select>
+      </div>
 
-.required {
-  color: #dc3545;
-}
+      <!-- End Location -->
+      <div>
+        <label for="endLocation" class="block text-sm font-semibold text-gray-700 mb-2">
+          End Location <span class="text-red-500">*</span>
+        </label>
+        <select
+          id="endLocation"
+          v-model="formData.endLocation"
+          required
+          class="w-full border border-gray-300 rounded-md p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Select end location</option>
+          <option
+            v-for="location in locations"
+            :key="location.code"
+            :value="location.name"
+          >
+            {{ location.name }}
+          </option>
+        </select>
+      </div>
 
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
+      <!-- Actions -->
+      <div class="flex justify-end gap-3 pt-4">
+        <button
+          type="button"
+          @click="handleCancel"
+          class="px-5 py-2.5 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md font-medium transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          :disabled="submitting"
+          class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-md font-medium transition-colors"
+        >
+          {{ submitting ? 'Saving...' : 'Save Changes' }}
+        </button>
+      </div>
 
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-}
-
-.form-group input.readonly {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-}
-
-.btn-cancel,
-.btn-submit {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.btn-cancel {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-cancel:hover {
-  background-color: #5a6268;
-}
-
-.btn-submit {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-submit:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.btn-submit:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.error-message {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-}
-
-.success-message {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-  border-radius: 4px;
-}
-</style>
+      <!-- Messages -->
+      <div
+        v-if="submitError"
+        class="mt-4 text-red-700 bg-red-100 border border-red-300 rounded-md px-4 py-3"
+      >
+        {{ submitError }}
+      </div>
+      <div
+        v-if="submitSuccess"
+        class="mt-4 text-green-700 bg-green-100 border border-green-300 rounded-md px-4 py-3"
+      >
+        {{ submitSuccess }}
+      </div>
+    </form>
+  </div>
+</template>

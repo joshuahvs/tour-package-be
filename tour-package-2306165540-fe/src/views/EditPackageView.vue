@@ -1,110 +1,3 @@
-<template>
-  <div class="edit-package-view">
-    <h1 class="page-title">Edit Package</h1>
-
-    <div v-if="loading" class="loading">Loading package data...</div>
-    
-    <div v-else-if="errorLoad" class="error-message">{{ errorLoad }}</div>
-
-    <div v-else class="form-container">
-      <div class="form-header">
-        <h2>Package Information</h2>
-      </div>
-
-      <form @submit.prevent="handleSubmit" class="package-form">
-        <div class="form-group">
-          <label for="packageName" class="form-label">
-            Package Name <span class="required">*</span>
-          </label>
-          <input
-            id="packageName"
-            v-model="formData.packageName"
-            type="text"
-            class="form-input"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="userId" class="form-label">
-            User ID <span class="required">*</span>
-          </label>
-          <input
-            id="userId"
-            v-model="formData.userId"
-            type="text"
-            class="form-input"
-            readonly
-            disabled
-            title="User ID cannot be changed"
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="startDate" class="form-label">
-            Start Date <span class="required">*</span>
-          </label>
-          <input
-            id="startDate"
-            v-model="formData.startDate"
-            type="datetime-local"
-            class="form-input"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="endDate" class="form-label">
-            End Date <span class="required">*</span>
-          </label>
-          <input
-            id="endDate"
-            v-model="formData.endDate"
-            type="datetime-local"
-            class="form-input"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="quota" class="form-label">
-            Quota <span class="required">*</span>
-          </label>
-          <input
-            id="quota"
-            v-model.number="formData.quota"
-            type="number"
-            class="form-input"
-            min="1"
-            required
-          />
-        </div>
-
-        <div v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </div>
-
-        <div class="form-actions">
-          <button 
-            type="submit" 
-            class="btn btn-primary"
-            :disabled="isSubmitting"
-          >
-            {{ isSubmitting ? 'Updating...' : 'Update Package' }}
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-secondary"
-            @click="handleCancel"
-            :disabled="isSubmitting"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
@@ -117,6 +10,9 @@ const route = useRoute()
 
 const loading = ref(true)
 const errorLoad = ref('')
+const isSubmitting = ref(false)
+const errorMessage = ref('')
+
 const formData = reactive<UpdatePackageRequest>({
   packageName: '',
   userId: '',
@@ -125,24 +21,17 @@ const formData = reactive<UpdatePackageRequest>({
   endDate: ''
 })
 
-const isSubmitting = ref(false)
-const errorMessage = ref('')
-
 const fetchPackageData = async () => {
   try {
     loading.value = true
     const id = route.params.id as string
     const packageData = await packageApi.getPackageById(id)
-    
-    // Populate form with existing data
+
     formData.packageName = packageData.packageName
     formData.userId = packageData.userId
     formData.quota = packageData.quota
-    
-    // Convert datetime to datetime-local format (YYYY-MM-DDTHH:mm)
     formData.startDate = formatDateTimeLocal(packageData.startDate)
     formData.endDate = formatDateTimeLocal(packageData.endDate)
-    
   } catch (error: any) {
     errorLoad.value = error.message || 'Failed to load package data'
     console.error('Error fetching package:', error)
@@ -163,7 +52,6 @@ const formatDateTimeLocal = (dateString: string): string => {
 
 const validateForm = (): boolean => {
   errorMessage.value = ''
-
   if (!formData.packageName || !formData.userId || !formData.startDate || !formData.endDate) {
     errorMessage.value = 'All fields are required'
     return false
@@ -171,7 +59,6 @@ const validateForm = (): boolean => {
 
   const startDate = new Date(formData.startDate)
   const endDate = new Date(formData.endDate)
-
   if (endDate <= startDate) {
     errorMessage.value = 'End date must be after start date'
     return false
@@ -186,9 +73,7 @@ const validateForm = (): boolean => {
 }
 
 const handleSubmit = async () => {
-  if (!validateForm()) {
-    return
-  }
+  if (!validateForm()) return
 
   isSubmitting.value = true
   errorMessage.value = ''
@@ -218,152 +103,131 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.edit-package-view {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
+<template>
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Edit Package</h1>
 
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 2rem;
-}
+    <!-- Loading -->
+    <div v-if="loading" class="text-center py-8 text-lg text-gray-600">
+      Loading package data...
+    </div>
 
-.loading {
-  text-align: center;
-  padding: 3rem;
-  font-size: 1.125rem;
-  color: #6b7280;
-}
+    <!-- Error Load -->
+    <div
+      v-else-if="errorLoad"
+      class="text-center bg-red-100 text-red-700 py-4 rounded-lg mb-4"
+    >
+      {{ errorLoad }}
+    </div>
 
-.form-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
+    <!-- Form -->
+    <div v-else class="bg-white rounded-xl shadow-md overflow-hidden">
+      <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-4">
+        <h2 class="text-xl font-semibold">Package Information</h2>
+      </div>
 
-.form-header {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
-  padding: 1rem 1.5rem;
-}
+      <form @submit.prevent="handleSubmit" class="p-6 space-y-6">
+        <!-- Package Name -->
+        <div>
+          <label for="packageName" class="block text-gray-700 font-medium mb-2">
+            Package Name <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="packageName"
+            v-model="formData.packageName"
+            type="text"
+            required
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </div>
 
-.form-header h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
+        <!-- User ID -->
+        <div>
+          <label for="userId" class="block text-gray-700 font-medium mb-2">
+            User ID <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="userId"
+            v-model="formData.userId"
+            type="text"
+            readonly
+            disabled
+            title="User ID cannot be changed"
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-base bg-gray-100 text-gray-500 cursor-not-allowed"
+          />
+        </div>
 
-.package-form {
-  padding: 2rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+        <!-- Start Date -->
+        <div>
+          <label for="startDate" class="block text-gray-700 font-medium mb-2">
+            Start Date <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="startDate"
+            v-model="formData.startDate"
+            type="datetime-local"
+            required
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </div>
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
+        <!-- End Date -->
+        <div>
+          <label for="endDate" class="block text-gray-700 font-medium mb-2">
+            End Date <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="endDate"
+            v-model="formData.endDate"
+            type="datetime-local"
+            required
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </div>
 
-.form-label {
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.875rem;
-}
+        <!-- Quota -->
+        <div>
+          <label for="quota" class="block text-gray-700 font-medium mb-2">
+            Quota <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="quota"
+            v-model.number="formData.quota"
+            type="number"
+            min="1"
+            required
+            class="w-full border border-gray-300 rounded-md px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </div>
 
-.required {
-  color: #ef4444;
-}
+        <!-- Error Message -->
+        <div
+          v-if="errorMessage"
+          class="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm"
+        >
+          {{ errorMessage }}
+        </div>
 
-.form-input {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: all 0.2s;
-}
+        <!-- Buttons -->
+        <div class="flex flex-col md:flex-row gap-4 pt-6 border-t border-gray-200">
+          <button
+            type="submit"
+            class="flex-1 bg-indigo-500 text-white py-2.5 rounded-md font-medium hover:bg-indigo-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? 'Updating...' : 'Update Package' }}
+          </button>
 
-.form-input:focus {
-  outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.form-input:disabled {
-  background: #f3f4f6;
-  cursor: not-allowed;
-  color: #6b7280;
-}
-
-.form-input::placeholder {
-  color: #9ca3af;
-}
-
-.error-message {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 1rem;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #6366f1;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #4f46e5;
-}
-
-.btn-secondary {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #d1d5db;
-}
-
-@media (max-width: 768px) {
-  .edit-package-view {
-    padding: 1rem;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-  }
-}
-</style>
+          <button
+            type="button"
+            @click="handleCancel"
+            :disabled="isSubmitting"
+            class="flex-1 bg-gray-100 text-gray-800 py-2.5 rounded-md font-medium hover:bg-gray-200 transition"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>

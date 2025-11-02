@@ -1,15 +1,5 @@
 <template>
-  <div class="about">
+  <div class="min-h-screen flex items-center lg:min-h-screen">
     <h1></h1>
   </div>
 </template>
-
-<style>
-@media (min-width: 1024px) {
-  .about {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-  }
-}
-</style>
