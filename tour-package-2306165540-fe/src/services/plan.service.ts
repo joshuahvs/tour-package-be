@@ -141,6 +141,22 @@ export const planApi = {
     }
   },
 
+  async deletePlan(planId: string): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/packages/plans/${planId}/delete`, {
+        method: 'DELETE',
+      })
+      const json: ApiResponse<void> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to delete plan')
+      }
+    } catch (error) {
+      console.error('Error deleting plan:', error)
+      throw error
+    }
+  },
+
   async getAvailablePlansForActivity(planId: string): Promise<PlanData[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/plans/${planId}/available-activities`)

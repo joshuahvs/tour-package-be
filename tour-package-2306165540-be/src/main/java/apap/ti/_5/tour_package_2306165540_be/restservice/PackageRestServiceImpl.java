@@ -230,8 +230,9 @@ public class PackageRestServiceImpl implements PackageRestService {
         dto.setStartDate(packageEntity.getStartDate());
         dto.setEndDate(packageEntity.getEndDate());
 
-        // Map all plans (no need to filter since plans are not soft deleted)
+        // Map all plans, filtering out soft deleted ones
         List<PlanResponseDTO> planDTOs = packageEntity.getPlans().stream()
+                .filter(plan -> plan.getDeletedAt() == null)
                 .map(this::toPlanResponseDTO)
                 .collect(Collectors.toList());
         dto.setPlans(planDTOs);

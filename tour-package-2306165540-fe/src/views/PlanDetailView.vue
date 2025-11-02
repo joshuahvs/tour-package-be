@@ -28,6 +28,9 @@ const editOrderedQuantity = ref(0)
 const deletingOrderedActivity = ref<OrderedQuantityData | null>(null)
 const deletingActivity = ref(false)
 const deleteActivityError = ref('')
+const showDeletePlanModal = ref(false)
+const deletingPlan = ref(false)
+const deletePlanError = ref('')
 
 const isPackagePending = computed(() => {
   // Check if package status is Pending by checking if we can edit
@@ -153,6 +156,31 @@ const handleDeleteActivity = async () => {
   }
 }
 
+const openDeletePlanModal = () => {
+  deletePlanError.value = ''
+  showDeletePlanModal.value = true
+}
+
+const closeDeletePlanModal = () => {
+  showDeletePlanModal.value = false
+  deletePlanError.value = ''
+}
+
+const handleDeletePlan = async () => {
+  if (!planDetail.value) return
+  try {
+    deletingPlan.value = true
+    deletePlanError.value = ''
+    await planApi.deletePlan(planDetail.value.id)
+    // Redirect to package detail after successful deletion
+    router.push(`/packages/${planDetail.value.packageId}`)
+  } catch (err: any) {
+    deletePlanError.value = err.message || 'Failed to delete plan'
+  } finally {
+    deletingPlan.value = false
+  }
+}
+
 onMounted(fetchPlanDetail)
 </script>
 
@@ -211,7 +239,7 @@ onMounted(fetchPlanDetail)
           <button @click="handleEditPlan" class="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition">
             Edit Plan
           </button>
-          <button class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition">
+          <button @click="openDeletePlanModal" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition">
             Delete Plan
           </button>
         </div>
@@ -535,6 +563,57 @@ onMounted(fetchPlanDetail)
             class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
           >
             {{ deletingActivity ? 'Removing...' : 'OK' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Plan Confirmation Modal -->
+    <div
+      v-if="showDeletePlanModal && planDetail"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      @click="closeDeletePlanModal"
+    >
+      <div class="bg-white rounded-lg w-full max-w-md shadow-lg" @click.stop>
+        <div class="flex justify-between items-center border-b p-4">
+          <h3 class="font-semibold text-gray-800">Confirm Delete Plan</h3>
+          <button @click="closeDeletePlanModal" class="text-2xl text-gray-500 hover:text-gray-700">×</button>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <p class="text-gray-700">
+            Are you sure you want to delete this plan? This action cannot be undone.
+          </p>
+
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Plan Name</label>
+            <p class="text-gray-800 font-medium">{{ planDetail.planName }}</p>
+          </div>
+
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Total Price</label>
+            <p class="text-gray-800">{{ formatCurrency(planDetail.totalPrice) }}</p>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="deletePlanError" class="text-red-700 bg-red-100 border border-red-300 rounded-md p-2 text-sm">
+            {{ deletePlanError }}
+          </div>
+        </div>
+
+        <div class="border-t p-4 flex justify-end gap-2">
+          <button 
+            @click="closeDeletePlanModal" 
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleDeletePlan"
+            :disabled="deletingPlan"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+          >
+            {{ deletingPlan ? 'Deleting...' : 'OK' }}
           </button>
         </div>
       </div>

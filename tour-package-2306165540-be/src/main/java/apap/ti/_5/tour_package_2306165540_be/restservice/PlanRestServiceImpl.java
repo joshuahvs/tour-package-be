@@ -474,4 +474,23 @@ public class PlanRestServiceImpl implements PlanRestService {
         // Return updated plan details
         return getPlanDetail(plan.getId());
     }
+
+    @Override
+    public void deletePlan(UUID planId) {
+        // Get the plan
+        Plan plan = planRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
+
+        // Get the package
+        Package pkg = plan.getPackageEntity();
+
+        // Validation: Package status must be PENDING
+        if (!"PENDING".equals(pkg.getStatus())) {
+            throw new RuntimeException("Cannot delete plan. Package status must be PENDING");
+        }
+
+        // Soft delete: set deletedAt to current timestamp
+        plan.setDeletedAt(LocalDateTime.now());
+        planRepository.save(plan);
+    }
 }

@@ -23,5 +23,7 @@ public interface PlanRestService {
 
     PlanDetailResponseDTO deleteOrderedQuantity(UUID orderedQuantityId);
 
+    void deletePlan(UUID planId);
+
     List<PlanResponseDTO> getAvailablePlansForActivity(UUID planId);
 }
