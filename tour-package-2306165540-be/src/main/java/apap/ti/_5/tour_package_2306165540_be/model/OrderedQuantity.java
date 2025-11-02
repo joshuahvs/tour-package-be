@@ -49,4 +49,7 @@ public class OrderedQuantity {
 
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

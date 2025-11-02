@@ -21,5 +21,7 @@ public interface PlanRestService {
 
     PlanDetailResponseDTO updateOrderedQuantity(UUID orderedQuantityId, UpdateOrderedQuantityRequestDTO requestDTO);
 
+    PlanDetailResponseDTO deleteOrderedQuantity(UUID orderedQuantityId);
+
     List<PlanResponseDTO> getAvailablePlansForActivity(UUID planId);
 }

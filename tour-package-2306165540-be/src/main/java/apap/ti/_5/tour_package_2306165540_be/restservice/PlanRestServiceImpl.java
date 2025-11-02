@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -102,8 +103,12 @@ public class PlanRestServiceImpl implements PlanRestService {
         Plan plan = planRepository.findById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
 
-        // Validate: Plan tidak boleh memiliki OrderedQuantity
-        if (plan.getOrderedQuantities() != null && !plan.getOrderedQuantities().isEmpty()) {
+        // Validate: Plan tidak boleh memiliki OrderedQuantity (non-deleted)
+        long activeOrderedQuantities = plan.getOrderedQuantities() != null
+                ? plan.getOrderedQuantities().stream().filter(oq -> oq.getDeletedAt() == null).count()
+                : 0;
+
+        if (activeOrderedQuantities > 0) {
             throw new RuntimeException("Cannot edit plan. Plan must not have any ordered activities.");
         }
 
@@ -163,7 +168,10 @@ public class PlanRestServiceImpl implements PlanRestService {
         dto.setEndDate(plan.getEndDate());
         dto.setStartLocation(plan.getStartLocation());
         dto.setEndLocation(plan.getEndLocation());
-        dto.setActivitiesCount(plan.getOrderedQuantities() != null ? plan.getOrderedQuantities().size() : 0);
+        long activeCount = plan.getOrderedQuantities() != null
+                ? plan.getOrderedQuantities().stream().filter(oq -> oq.getDeletedAt() == null).count()
+                : 0;
+        dto.setActivitiesCount((int) activeCount);
         return dto;
     }
 
@@ -181,8 +189,9 @@ public class PlanRestServiceImpl implements PlanRestService {
         dto.setPackageId(plan.getPackageEntity().getId());
         dto.setPackageName(plan.getPackageEntity().getPackageName());
 
-        // Convert ordered quantities
+        // Convert ordered quantities (exclude deleted ones)
         List<OrderedQuantityResponseDTO> orderedQuantityDTOs = plan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
                 .map(this::toOrderedQuantityResponseDTO)
                 .collect(Collectors.toList());
         dto.setOrderedQuantities(orderedQuantityDTOs);
@@ -254,6 +263,7 @@ public class PlanRestServiceImpl implements PlanRestService {
 
         // Validation 6: Check total ordered quantity <= package quota
         int totalOrderedQuantity = currentPlan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
                 .mapToInt(OrderedQuantity::getOrderedQuota)
                 .sum();
 
@@ -289,12 +299,14 @@ public class PlanRestServiceImpl implements PlanRestService {
 
         // Recalculate total price
         long totalPrice = currentPlan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
                 .mapToLong(oq -> (long) oq.getPrice() * oq.getOrderedQuota())
                 .sum();
         currentPlan.setPrice(totalPrice);
 
         // Check if plan should be marked as Fulfilled
         int newTotalOrderedQuantity = currentPlan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
                 .mapToInt(oq -> oq.getOrderedQuota())
                 .sum();
 
@@ -341,7 +353,8 @@ public class PlanRestServiceImpl implements PlanRestService {
         dto.setEndDate(plan.getEndDate());
         dto.setStartLocation(plan.getStartLocation());
         dto.setEndLocation(plan.getEndLocation());
-        dto.setActivitiesCount(plan.getOrderedQuantities().size());
+        long activeCount = plan.getOrderedQuantities().stream().filter(oq -> oq.getDeletedAt() == null).count();
+        dto.setActivitiesCount((int) activeCount);
         // Set capacity from package quota
         if (plan.getPackageEntity() != null) {
             dto.setCapacity(plan.getPackageEntity().getQuota());
@@ -379,9 +392,9 @@ public class PlanRestServiceImpl implements PlanRestService {
         }
 
         // Validation 4: Check total ordered quantity doesn't exceed package quota
-        int currentOrderedQuantity = orderedQuantity.getOrderedQuota();
         int otherOrderedQuantities = plan.getOrderedQuantities().stream()
                 .filter(oq -> !oq.getId().equals(orderedQuantityId))
+                .filter(oq -> oq.getDeletedAt() == null)
                 .mapToInt(OrderedQuantity::getOrderedQuota)
                 .sum();
 
@@ -395,12 +408,58 @@ public class PlanRestServiceImpl implements PlanRestService {
 
         // Recalculate total price
         long totalPrice = plan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
                 .mapToLong(oq -> (long) oq.getPrice() * oq.getOrderedQuota())
                 .sum();
         plan.setPrice(totalPrice);
 
         // Update plan status based on total ordered quantity
         int totalOrderedQuantity = plan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
+                .mapToInt(OrderedQuantity::getOrderedQuota)
+                .sum();
+
+        if (totalOrderedQuantity == pkg.getQuota()) {
+            plan.setStatus("Fulfilled");
+        } else {
+            plan.setStatus("Unfulfilled");
+        }
+
+        planRepository.save(plan);
+
+        // Return updated plan details
+        return getPlanDetail(plan.getId());
+    }
+
+    @Override
+    public PlanDetailResponseDTO deleteOrderedQuantity(UUID orderedQuantityId) {
+        // Get the ordered quantity
+        OrderedQuantity orderedQuantity = orderedQuantityRepository.findById(orderedQuantityId)
+                .orElseThrow(() -> new RuntimeException("Ordered quantity not found with id: " + orderedQuantityId));
+
+        // Get the plan
+        Plan plan = orderedQuantity.getPlan();
+        Package pkg = plan.getPackageEntity();
+
+        // Validation 1: Package status must be PENDING
+        if (!"PENDING".equals(pkg.getStatus())) {
+            throw new RuntimeException("Cannot delete ordered activity. Package status must be PENDING");
+        }
+
+        // Soft delete: set deletedAt to current timestamp
+        orderedQuantity.setDeletedAt(LocalDateTime.now());
+        orderedQuantityRepository.save(orderedQuantity);
+
+        // Recalculate total price (excluding deleted items)
+        long totalPrice = plan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
+                .mapToLong(oq -> (long) oq.getPrice() * oq.getOrderedQuota())
+                .sum();
+        plan.setPrice(totalPrice);
+
+        // Update plan status based on total ordered quantity (excluding deleted items)
+        int totalOrderedQuantity = plan.getOrderedQuantities().stream()
+                .filter(oq -> oq.getDeletedAt() == null)
                 .mapToInt(OrderedQuantity::getOrderedQuota)
                 .sum();
 

@@ -123,6 +123,24 @@ export const planApi = {
     }
   },
 
+  async deleteOrderedQuantity(orderedQuantityId: string): Promise<PlanDetailData> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ordered-activities/${orderedQuantityId}/delete`, {
+        method: 'DELETE',
+      })
+      const json: ApiResponse<PlanDetailData> = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(json.message || 'Failed to delete ordered activity')
+      }
+      
+      return json.data
+    } catch (error) {
+      console.error('Error deleting ordered activity:', error)
+      throw error
+    }
+  },
+
   async getAvailablePlansForActivity(planId: string): Promise<PlanData[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/plans/${planId}/available-activities`)

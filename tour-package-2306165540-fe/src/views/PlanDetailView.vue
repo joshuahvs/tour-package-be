@@ -12,6 +12,7 @@ const loading = ref(true)
 const error = ref('')
 const showAddActivityModal = ref(false)
 const showEditActivityModal = ref(false)
+const showDeleteConfirmModal = ref(false)
 const loadingActivities = ref(false)
 const activityError = ref('')
 const allActivities = ref<PlanData[]>([])
@@ -24,6 +25,9 @@ const editingActivity = ref(false)
 const editActivityError = ref('')
 const editingOrderedActivity = ref<OrderedQuantityData | null>(null)
 const editOrderedQuantity = ref(0)
+const deletingOrderedActivity = ref<OrderedQuantityData | null>(null)
+const deletingActivity = ref(false)
+const deleteActivityError = ref('')
 
 const isPackagePending = computed(() => {
   // Check if package status is Pending by checking if we can edit
@@ -120,6 +124,32 @@ const handleEditActivity = async () => {
     editActivityError.value = err.message || 'Failed to update ordered activity quantity'
   } finally {
     editingActivity.value = false
+  }
+}
+
+const openDeleteConfirmModal = (activity: OrderedQuantityData) => {
+  deletingOrderedActivity.value = activity
+  deleteActivityError.value = ''
+  showDeleteConfirmModal.value = true
+}
+
+const closeDeleteConfirmModal = () => {
+  showDeleteConfirmModal.value = false
+  deletingOrderedActivity.value = null
+  deleteActivityError.value = ''
+}
+
+const handleDeleteActivity = async () => {
+  if (!deletingOrderedActivity.value || !planDetail.value) return
+  try {
+    deletingActivity.value = true
+    deleteActivityError.value = ''
+    planDetail.value = await planApi.deleteOrderedQuantity(deletingOrderedActivity.value.id)
+    closeDeleteConfirmModal()
+  } catch (err: any) {
+    deleteActivityError.value = err.message || 'Failed to remove activity from plan'
+  } finally {
+    deletingActivity.value = false
   }
 }
 
@@ -239,6 +269,7 @@ onMounted(fetchPlanDetail)
                       Edit
                     </button>
                     <button
+                      @click="openDeleteConfirmModal(activity)"
                       class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm transition"
                     >
                       Remove
@@ -448,6 +479,62 @@ onMounted(fetchPlanDetail)
             class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
           >
             {{ editingActivity ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="showDeleteConfirmModal && deletingOrderedActivity"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      @click="closeDeleteConfirmModal"
+    >
+      <div class="bg-white rounded-lg w-full max-w-md shadow-lg" @click.stop>
+        <div class="flex justify-between items-center border-b p-4">
+          <h3 class="font-semibold text-gray-800">Confirm Remove Activity</h3>
+          <button @click="closeDeleteConfirmModal" class="text-2xl text-gray-500 hover:text-gray-700">×</button>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <p class="text-gray-700">
+            Are you sure you want to remove this activity from the plan?
+          </p>
+
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Activity Name</label>
+            <p class="text-gray-800 font-medium">{{ deletingOrderedActivity.activityName }}</p>
+          </div>
+
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Ordered Quantity</label>
+            <p class="text-gray-800">{{ deletingOrderedActivity.orderedQuota }}</p>
+          </div>
+
+          <div class="bg-gray-50 p-3 rounded-md">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Total Price</label>
+            <p class="text-gray-800">{{ formatCurrency(deletingOrderedActivity.total) }}</p>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="deleteActivityError" class="text-red-700 bg-red-100 border border-red-300 rounded-md p-2 text-sm">
+            {{ deleteActivityError }}
+          </div>
+        </div>
+
+        <div class="border-t p-4 flex justify-end gap-2">
+          <button 
+            @click="closeDeleteConfirmModal" 
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+          >
+            Cancel
+          </button>
+          <button
+            @click="handleDeleteActivity"
+            :disabled="deletingActivity"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+          >
+            {{ deletingActivity ? 'Removing...' : 'OK' }}
           </button>
         </div>
       </div>

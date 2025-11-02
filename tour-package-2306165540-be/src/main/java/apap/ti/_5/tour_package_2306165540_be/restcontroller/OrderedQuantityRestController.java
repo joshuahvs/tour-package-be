@@ -86,4 +86,35 @@ public class OrderedQuantityRestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
+    @DeleteMapping("/{id}/delete")
+    public ResponseEntity<BaseResponseDTO<PlanDetailResponseDTO>> deleteOrderedQuantity(@PathVariable UUID id) {
+        try {
+            PlanDetailResponseDTO plan = planRestService.deleteOrderedQuantity(id);
+
+            BaseResponseDTO<PlanDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully removed activity from plan");
+            response.setData(plan);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<PlanDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<PlanDetailResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to remove activity from plan: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
 }
