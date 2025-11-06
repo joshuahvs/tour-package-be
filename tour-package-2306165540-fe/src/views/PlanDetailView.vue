@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { planApi } from '@/services/plan.service'
-import type { PlanDetailData, PlanData, AddOrderedQuantityRequest, UpdateOrderedQuantityRequest, OrderedQuantityData } from '@/interface/plan.interface'
+import type { PlanDetailData, PlanData, AddOrderedQuantityRequest, UpdateOrderedQuantityRequest, OrderedQuantityData } from '@/interfaces/plan.interface'
 
 const route = useRoute()
 const router = useRouter()

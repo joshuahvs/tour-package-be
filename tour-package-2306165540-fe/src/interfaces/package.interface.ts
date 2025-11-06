@@ -34,6 +34,22 @@ export interface PackageDetailData {
   plans: PlanData[]
 }
 
+export interface CreatePackageRequest {
+  packageName: string
+  userId: string
+  quota: number
+  startDate: string
+  endDate: string
+}
+
+export interface UpdatePackageRequest {
+  packageName: string
+  userId: string
+  quota: number
+  startDate: string
+  endDate: string
+}
+
 export interface ApiResponse<T> {
   status: number
   message: string

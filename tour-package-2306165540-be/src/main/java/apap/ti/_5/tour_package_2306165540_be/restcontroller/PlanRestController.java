@@ -1,7 +1,7 @@
 package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
-import apap.ti._5.tour_package_2306165540_be.restdto.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePlanRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.PlanRestService;

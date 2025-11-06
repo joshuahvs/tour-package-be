@@ -1,4 +1,4 @@
-import type { ApiResponse, ActivityData } from '@/interface/activity.interface'
+import type { ApiResponse, ActivityData } from '@/interfaces/activity.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 

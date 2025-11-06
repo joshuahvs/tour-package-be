@@ -2,8 +2,8 @@ package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
 import apap.ti._5.tour_package_2306165540_be.model.Activity;
 import apap.ti._5.tour_package_2306165540_be.repository.ActivityRepository;
-import apap.ti._5.tour_package_2306165540_be.restdto.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.ActivityResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -3,7 +3,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { packageApi } from '@/services/package.service'
-import type { CreatePackageRequest } from '@/interface/package.interface'
+import type { CreatePackageRequest } from '@/interfaces/package.interface'
 
 const router = useRouter()
 

@@ -65,75 +65,75 @@ public class DataLoader implements CommandLineRunner {
 
         Activity activity1 = new Activity();
         activity1.setId("ACT-001");
-        activity1.setActivityName("Snorkeling Adventure");
-        activity1.setActivityItem("Snorkeling Equipment, Life Jacket");
-        activity1.setCapacity(30);
-        activity1.setPrice(500000L);
-        activity1.setActivityType("Water Sport");
+        activity1.setActivityName("Economy Flight Jakarta-Bali");
+        activity1.setActivityItem("Flight Ticket");
+        activity1.setCapacity(180);
+        activity1.setPrice(800000L);
+        activity1.setActivityType("Flight");
         activity1.setStartDate(now.plusDays(5));
-        activity1.setEndDate(now.plusDays(5).plusHours(4));
-        activity1.setStartLocation("Nusa Dua Beach");
-        activity1.setEndLocation("Nusa Dua Beach");
+        activity1.setEndDate(now.plusDays(5).plusHours(2));
+        activity1.setStartLocation("Soekarno-Hatta Airport");
+        activity1.setEndLocation("Ngurah Rai Airport");
 
         Activity activity2 = new Activity();
         activity2.setId("ACT-002");
-        activity2.setActivityName("Temple Tour");
-        activity2.setActivityItem("Sarong, Tour Guide");
+        activity2.setActivityName("City Hotel Stay");
+        activity2.setActivityItem("Room, Breakfast Included");
         activity2.setCapacity(50);
         activity2.setPrice(350000L);
-        activity2.setActivityType("Cultural");
+        activity2.setActivityType("Accommodation");
         activity2.setStartDate(now.plusDays(3));
-        activity2.setEndDate(now.plusDays(3).plusHours(6));
-        activity2.setStartLocation("Ubud Center");
-        activity2.setEndLocation("Ubud Center");
+        activity2.setEndDate(now.plusDays(3).plusHours(24));
+        activity2.setStartLocation("Downtown Hotel");
+        activity2.setEndLocation("Downtown Hotel");
 
         Activity activity3 = new Activity();
         activity3.setId("ACT-003");
-        activity3.setActivityName("Mountain Hiking");
-        activity3.setActivityItem("Hiking Boots, Backpack, Guide");
+        activity3.setActivityName("SUV Rental");
+        activity3.setActivityItem("SUV Vehicle, Insurance");
         activity3.setCapacity(20);
         activity3.setPrice(750000L);
-        activity3.setActivityType("Adventure");
+        activity3.setActivityType("Vehicle Rental");
         activity3.setStartDate(now.plusDays(7));
         activity3.setEndDate(now.plusDays(7).plusHours(8));
-        activity3.setStartLocation("Mount Batur Base Camp");
-        activity3.setEndLocation("Mount Batur Summit");
+        activity3.setStartLocation("Jakarta Downtown");
+        activity3.setEndLocation("Jakarta Downtown");
 
         Activity activity4 = new Activity();
         activity4.setId("ACT-004");
-        activity4.setActivityName("Cooking Class");
-        activity4.setActivityItem("Ingredients, Apron, Recipe Book");
+        activity4.setActivityName("Resort Hotel Stay");
+        activity4.setActivityItem("Room, Pool Access");
         activity4.setCapacity(15);
         activity4.setPrice(450000L);
-        activity4.setActivityType("Culinary");
+        activity4.setActivityType("Accommodation");
         activity4.setStartDate(now.plusDays(4));
-        activity4.setEndDate(now.plusDays(4).plusHours(3));
-        activity4.setStartLocation("Ubud Cooking School");
-        activity4.setEndLocation("Ubud Cooking School");
+        activity4.setEndDate(now.plusDays(4).plusHours(24));
+        activity4.setStartLocation("Ubud Resort");
+        activity4.setEndLocation("Ubud Resort");
 
         Activity activity5 = new Activity();
         activity5.setId("ACT-005");
-        activity5.setActivityName("Surfing Lesson");
-        activity5.setActivityItem("Surfboard, Wetsuit, Instructor");
+        activity5.setActivityName("Compact Car Rental");
+        activity5.setActivityItem("Car, Insurance");
         activity5.setCapacity(25);
         activity5.setPrice(600000L);
-        activity5.setActivityType("Water Sport");
+        activity5.setActivityType("Vehicle Rental");
         activity5.setStartDate(now.plusDays(6));
         activity5.setEndDate(now.plusDays(6).plusHours(3));
-        activity5.setStartLocation("Kuta Beach");
-        activity5.setEndLocation("Kuta Beach");
+        activity5.setStartLocation("Kuta City Center");
+        activity5.setEndLocation("Kuta City Center");
 
         Activity activity6 = new Activity();
         activity6.setId("ACT-006");
-        activity6.setActivityName("Spa & Massage");
-        activity6.setActivityItem("Essential Oils, Towels");
-        activity6.setCapacity(10);
-        activity6.setPrice(400000L);
-        activity6.setActivityType("Wellness");
+        activity6.setActivityName("Business Flight Jakarta-Bali");
+        activity6.setActivityItem("Flight Ticket");
+        activity6.setCapacity(20);
+        activity6.setPrice(1500000L);
+        activity6.setActivityType("Flight");
         activity6.setStartDate(now.plusDays(2));
         activity6.setEndDate(now.plusDays(2).plusHours(2));
-        activity6.setStartLocation("Seminyak Spa Center");
-        activity6.setEndLocation("Seminyak Spa Center");
+        activity6.setStartLocation("Soekarno-Hatta Airport");
+        activity6.setEndLocation("Ngurah Rai Airport");
 
         return Arrays.asList(activity1, activity2, activity3, activity4, activity5, activity6);
     }
@@ -147,7 +147,7 @@ public class DataLoader implements CommandLineRunner {
         package1.setPackageName("Bali Adventure Package");
         package1.setQuota(20);
         package1.setPrice(2500000L);
-        package1.setStatus("ACTIVE");
+        package1.setStatus("PROCESSED");
         package1.setStartDate(now.plusDays(3));
         package1.setEndDate(now.plusDays(7));
 
@@ -157,7 +157,7 @@ public class DataLoader implements CommandLineRunner {
         package2.setPackageName("Cultural Experience");
         package2.setQuota(15);
         package2.setPrice(1800000L);
-        package2.setStatus("ACTIVE");
+        package2.setStatus("PROCESSED");
         package2.setStartDate(now.plusDays(2));
         package2.setEndDate(now.plusDays(5));
 
@@ -167,7 +167,7 @@ public class DataLoader implements CommandLineRunner {
         package3.setPackageName("Water Sports Extravaganza");
         package3.setQuota(30);
         package3.setPrice(2200000L);
-        package3.setStatus("ACTIVE");
+        package3.setStatus("PROCESSED");
         package3.setStartDate(now.plusDays(5));
         package3.setEndDate(now.plusDays(8));
 
@@ -188,93 +188,186 @@ public class DataLoader implements CommandLineRunner {
         LocalDateTime now = LocalDateTime.now();
         List<Plan> plans = new ArrayList<>();
 
-        // Plans for Package 1 - Bali Adventure Package
+        // Plans for Package 1 - Converted to Vehicle Rental examples
         Plan plan1 = new Plan();
         plan1.setId(UUID.randomUUID());
         plan1.setPackageEntity(packages.get(0));
+        plan1.setPlanName("SUV Rental Plan");
         plan1.setPrice(750000L);
-        plan1.setActivityType("Adventure");
-        plan1.setStatus("CONFIRMED");
+        plan1.setActivityType("Vehicle Rental");
+        plan1.setStatus("FULFILLED");
         plan1.setStartDate(now.plusDays(7));
         plan1.setEndDate(now.plusDays(7).plusHours(8));
-        plan1.setStartLocation("Mount Batur Base Camp");
-        plan1.setEndLocation("Mount Batur Summit");
+        plan1.setStartLocation("Jakarta Downtown");
+        plan1.setEndLocation("Jakarta Downtown");
         plans.add(plan1);
 
         Plan plan2 = new Plan();
         plan2.setId(UUID.randomUUID());
         plan2.setPackageEntity(packages.get(0));
+        plan2.setPlanName("Car Rental Plan");
         plan2.setPrice(500000L);
-        plan2.setActivityType("Water Sport");
-        plan2.setStatus("CONFIRMED");
+        plan2.setActivityType("Vehicle Rental");
+        plan2.setStatus("FULFILLED");
         plan2.setStartDate(now.plusDays(5));
         plan2.setEndDate(now.plusDays(5).plusHours(4));
-        plan2.setStartLocation("Nusa Dua Beach");
-        plan2.setEndLocation("Nusa Dua Beach");
+        plan2.setStartLocation("Kuta City Center");
+        plan2.setEndLocation("Kuta City Center");
         plans.add(plan2);
 
-        // Plans for Package 2 - Cultural Experience
+        // Plans for Package 2 - Accommodation examples
         Plan plan3 = new Plan();
         plan3.setId(UUID.randomUUID());
         plan3.setPackageEntity(packages.get(1));
+        plan3.setPlanName("City Hotel Plan");
         plan3.setPrice(350000L);
-        plan3.setActivityType("Cultural");
-        plan3.setStatus("CONFIRMED");
+        plan3.setActivityType("Accommodation");
+        plan3.setStatus("FULFILLED");
         plan3.setStartDate(now.plusDays(3));
-        plan3.setEndDate(now.plusDays(3).plusHours(6));
-        plan3.setStartLocation("Ubud Center");
-        plan3.setEndLocation("Ubud Center");
+        plan3.setEndDate(now.plusDays(4));
+        plan3.setStartLocation("Downtown Hotel");
+        plan3.setEndLocation("Downtown Hotel");
         plans.add(plan3);
 
         Plan plan4 = new Plan();
         plan4.setId(UUID.randomUUID());
         plan4.setPackageEntity(packages.get(1));
+        plan4.setPlanName("Resort Hotel Plan");
         plan4.setPrice(450000L);
-        plan4.setActivityType("Culinary");
-        plan4.setStatus("CONFIRMED");
+        plan4.setActivityType("Accommodation");
+        plan4.setStatus("FULFILLED");
         plan4.setStartDate(now.plusDays(4));
-        plan4.setEndDate(now.plusDays(4).plusHours(3));
-        plan4.setStartLocation("Ubud Cooking School");
-        plan4.setEndLocation("Ubud Cooking School");
+        plan4.setEndDate(now.plusDays(5));
+        plan4.setStartLocation("Ubud Resort");
+        plan4.setEndLocation("Ubud Resort");
         plans.add(plan4);
 
-        // Plans for Package 3 - Water Sports Extravaganza
+        // Plans for Package 3 - Vehicle Rental examples
         Plan plan5 = new Plan();
         plan5.setId(UUID.randomUUID());
         plan5.setPackageEntity(packages.get(2));
+        plan5.setPlanName("Vehicle Rental Option 1");
         plan5.setPrice(600000L);
-        plan5.setActivityType("Water Sport");
-        plan5.setStatus("CONFIRMED");
+        plan5.setActivityType("Vehicle Rental");
+        plan5.setStatus("FULFILLED");
         plan5.setStartDate(now.plusDays(6));
         plan5.setEndDate(now.plusDays(6).plusHours(3));
-        plan5.setStartLocation("Kuta Beach");
-        plan5.setEndLocation("Kuta Beach");
+        plan5.setStartLocation("Kuta City Center");
+        plan5.setEndLocation("Kuta City Center");
         plans.add(plan5);
 
         Plan plan6 = new Plan();
         plan6.setId(UUID.randomUUID());
         plan6.setPackageEntity(packages.get(2));
+        plan6.setPlanName("Vehicle Rental Option 2");
         plan6.setPrice(500000L);
-        plan6.setActivityType("Water Sport");
-        plan6.setStatus("CONFIRMED");
+        plan6.setActivityType("Vehicle Rental");
+        plan6.setStatus("FULFILLED");
         plan6.setStartDate(now.plusDays(5));
         plan6.setEndDate(now.plusDays(5).plusHours(4));
-        plan6.setStartLocation("Nusa Dua Beach");
-        plan6.setEndLocation("Nusa Dua Beach");
+        plan6.setStartLocation("Nusa Dua Center");
+        plan6.setEndLocation("Nusa Dua Center");
         plans.add(plan6);
 
-        // Plans for Package 4 - Relaxation Retreat
+        // Plans for Package 4 - Relaxation Retreat (Accommodation)
         Plan plan7 = new Plan();
         plan7.setId(UUID.randomUUID());
         plan7.setPackageEntity(packages.get(3));
+        plan7.setPlanName("Spa & Massage Plan");
         plan7.setPrice(400000L);
-        plan7.setActivityType("Wellness");
-        plan7.setStatus("PENDING");
+        plan7.setActivityType("Accommodation");
+        plan7.setStatus("Unfulfilled");
         plan7.setStartDate(now.plusDays(10));
         plan7.setEndDate(now.plusDays(10).plusHours(2));
         plan7.setStartLocation("Seminyak Spa Center");
         plan7.setEndLocation("Seminyak Spa Center");
         plans.add(plan7);
+
+        // Add a group of Flight plans in Jakarta -> Bali to simulate the spec
+        // screenshots
+        // Base plan that the user will open (in a PENDING package timeframe)
+        Plan flightBase = new Plan();
+        flightBase.setId(UUID.randomUUID());
+        flightBase.setPackageEntity(packages.get(3)); // PENDING package
+        flightBase.setPlanName("Jakarta-Bali Flight Plan");
+        flightBase.setPrice(0L);
+        flightBase.setActivityType("Flight");
+        flightBase.setStatus("Unfulfilled");
+        // Simulate 01/11/2025 08:00 - 10:30 with offsets relative to now
+        flightBase.setStartDate(now.plusDays(0).withHour(8).withMinute(0).withSecond(0).withNano(0));
+        flightBase.setEndDate(now.plusDays(0).withHour(10).withMinute(30).withSecond(0).withNano(0));
+        flightBase.setStartLocation("DKI Jakarta (Provinsi)");
+        flightBase.setEndLocation("Bali (Provinsi)");
+        plans.add(flightBase);
+
+        // Option 1 within the same window
+        Plan flightOpt1 = new Plan();
+        flightOpt1.setId(UUID.randomUUID());
+        flightOpt1.setPackageEntity(packages.get(3));
+        flightOpt1.setPlanName("Jakarta to Bali Flight");
+        flightOpt1.setPrice(1_500_000L);
+        flightOpt1.setActivityType("Flight");
+        flightOpt1.setStatus("Unfulfilled");
+        flightOpt1.setStartDate(flightBase.getStartDate());
+        flightOpt1.setEndDate(flightBase.getEndDate());
+        flightOpt1.setStartLocation(flightBase.getStartLocation());
+        flightOpt1.setEndLocation(flightBase.getEndLocation());
+        plans.add(flightOpt1);
+
+        // Option 2 within the same window
+        Plan flightOpt2 = new Plan();
+        flightOpt2.setId(UUID.randomUUID());
+        flightOpt2.setPackageEntity(packages.get(3));
+        flightOpt2.setPlanName("Lion Air - Jakarta to Bali Flight");
+        flightOpt2.setPrice(800_000L);
+        flightOpt2.setActivityType("Flight");
+        flightOpt2.setStatus("Unfulfilled");
+        flightOpt2.setStartDate(flightBase.getStartDate());
+        flightOpt2.setEndDate(flightBase.getEndDate());
+        flightOpt2.setStartLocation(flightBase.getStartLocation());
+        flightOpt2.setEndLocation(flightBase.getEndLocation());
+        plans.add(flightOpt2);
+
+        // Also add an Accommodation/Aceh set to test location/type/date matching for
+        // another case
+        Plan accBase = new Plan();
+        accBase.setId(UUID.randomUUID());
+        accBase.setPackageEntity(packages.get(3));
+        accBase.setPlanName("Luxury Hotel Stay - Main Plan");
+        accBase.setPrice(0L);
+        accBase.setActivityType("Accommodation");
+        accBase.setStatus("Unfulfilled");
+        accBase.setStartDate(now.plusDays(10).withHour(8).withMinute(0).withSecond(0).withNano(0));
+        accBase.setEndDate(now.plusDays(15).withHour(10).withMinute(30).withSecond(0).withNano(0));
+        accBase.setStartLocation("Aceh");
+        accBase.setEndLocation("Aceh");
+        plans.add(accBase);
+
+        Plan accOpt1 = new Plan();
+        accOpt1.setId(UUID.randomUUID());
+        accOpt1.setPackageEntity(packages.get(3));
+        accOpt1.setPlanName("Budget Hotel Room");
+        accOpt1.setPrice(300_000L);
+        accOpt1.setActivityType("Accommodation");
+        accOpt1.setStatus("Unfulfilled");
+        accOpt1.setStartDate(now.plusDays(11).withHour(12).withMinute(0).withSecond(0).withNano(0));
+        accOpt1.setEndDate(now.plusDays(13).withHour(9).withMinute(0).withSecond(0).withNano(0));
+        accOpt1.setStartLocation("Aceh");
+        accOpt1.setEndLocation("Aceh");
+        plans.add(accOpt1);
+
+        Plan accOpt2 = new Plan();
+        accOpt2.setId(UUID.randomUUID());
+        accOpt2.setPackageEntity(packages.get(3));
+        accOpt2.setPlanName("Standard Room Accommodation");
+        accOpt2.setPrice(500_000L);
+        accOpt2.setActivityType("Accommodation");
+        accOpt2.setStatus("Unfulfilled");
+        accOpt2.setStartDate(now.plusDays(12).withHour(12).withMinute(0).withSecond(0).withNano(0));
+        accOpt2.setEndDate(now.plusDays(14).withHour(9).withMinute(0).withSecond(0).withNano(0));
+        accOpt2.setStartLocation("Aceh");
+        accOpt2.setEndLocation("Aceh");
+        plans.add(accOpt2);
 
         return plans;
     }

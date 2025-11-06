@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { planApi } from '@/services/plan.service'
 import { packageApi } from '@/services/package.service'
-import type { CreatePlanRequest, LocationData } from '@/interface/plan.interface'
+import type { CreatePlanRequest, LocationData } from '@/interfaces/plan.interface'
 
 const route = useRoute()
 const router = useRouter()

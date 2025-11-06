@@ -3,7 +3,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { packageApi } from '@/services/package.service'
-import type { UpdatePackageRequest } from '@/interface/package.interface'
+import type { UpdatePackageRequest } from '@/interfaces/package.interface'
 
 const router = useRouter()
 const route = useRoute()

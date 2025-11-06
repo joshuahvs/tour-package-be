@@ -1,4 +1,4 @@
-import type { ApiResponse, CreatePlanRequest, UpdatePlanRequest, AddOrderedQuantityRequest, UpdateOrderedQuantityRequest, PlanData, PlanDetailData, LocationData } from '@/interface/plan.interface'
+import type { ApiResponse, CreatePlanRequest, UpdatePlanRequest, AddOrderedQuantityRequest, UpdateOrderedQuantityRequest, PlanData, PlanDetailData, LocationData } from '@/interfaces/plan.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 

@@ -1,4 +1,4 @@
-import type { ApiResponse } from '@/interface/plan.interface'
+import type { ApiResponse } from '@/interfaces/plan.interface'
 
 const API_BASE_URL = 'http://localhost:8080/api'
 

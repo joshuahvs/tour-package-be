@@ -2,7 +2,7 @@
 import { ref, onMounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { planApi } from '@/services/plan.service';
-import type { PlanDetailData, LocationData, UpdatePlanRequest } from '@/interface/plan.interface';
+import type { PlanDetailData, LocationData, UpdatePlanRequest } from '@/interfaces/plan.interface';
 
 const router = useRouter();
 const route = useRoute();

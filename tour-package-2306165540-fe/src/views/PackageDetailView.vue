@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { packageApi } from '@/services/package.service'
-import type { PackageDetailData } from '@/interface/package.interface'
+import type { PackageDetailData } from '@/interfaces/package.interface'
 
 const route = useRoute()
 const router = useRouter()
