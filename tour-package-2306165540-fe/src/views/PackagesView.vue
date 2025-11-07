@@ -36,10 +36,18 @@ const fetchPackages = async (searchName?: string) => {
 }
 
 const handleSearch = () => {
+  if (dt) {
+    dt.destroy()
+    dt = null
+  }
   fetchPackages(searchQuery.value.trim() || undefined)
 }
 
 const clearSearch = () => {
+  if (dt) {
+    dt.destroy()
+    dt = null
+  }
   searchQuery.value = ''
   fetchPackages()
 }
@@ -100,6 +108,30 @@ const initDataTable = () => {
     info: true,
     lengthChange: false
   })
+  
+  // Setup click handler after DataTable is initialized
+  setupClickHandler()
+}
+
+const setupClickHandler = () => {
+  if (!tableRef.value) return
+  
+  // Remove old handler if exists
+  const el = tableRef.value as any
+  if (el._dtClickHandler) {
+    el.removeEventListener('click', el._dtClickHandler)
+  }
+  
+  // Add new handler
+  const handler = (e: Event) => {
+    const target = e.target as HTMLElement
+    const btn = target.closest('.dt-view-btn') as HTMLButtonElement | null
+    if (btn && btn.dataset.id) {
+      viewPackage(btn.dataset.id!)
+    }
+  }
+  el.addEventListener('click', handler)
+  el._dtClickHandler = handler
 }
 
 const loadDataIntoDataTable = () => {
@@ -138,18 +170,6 @@ const actionButtons = (id: string) => {
 
 onMounted(() => {
   fetchPackages()
-  // delegate clicks for action buttons inside DataTable
-  const handler = (e: Event) => {
-    const target = e.target as HTMLElement
-    const btn = target.closest('.dt-view-btn') as HTMLButtonElement | null
-    if (btn && btn.dataset.id) {
-      viewPackage(btn.dataset.id!)
-    }
-  }
-  tableRef.value?.addEventListener('click', handler)
-  if (tableRef.value) {
-    (tableRef.value as any)._dtClickHandler = handler
-  }
 })
 
 onBeforeUnmount(() => {
