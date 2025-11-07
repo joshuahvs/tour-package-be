@@ -1,15 +1,19 @@
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { packageApi } from '@/services/package.service'
 import type { PackageData } from '@/interfaces/package.interface'
+import DataTable from 'datatables.net-dt'
+import 'datatables.net-dt/css/dataTables.dataTables.css'
 
 const router = useRouter()
 const packages = ref<PackageData[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const searchQuery = ref('')
+const tableRef = ref<HTMLTableElement | null>(null)
+let dt: any = null
 
 const fetchPackages = async (searchName?: string) => {
   loading.value = true
@@ -21,6 +25,13 @@ const fetchPackages = async (searchName?: string) => {
     console.error(err)
   } finally {
     loading.value = false
+    // Wait for DOM to update before initializing/updating DataTable
+    await nextTick()
+    if (dt) {
+      loadDataIntoDataTable()
+    } else if (tableRef.value && packages.value.length > 0) {
+      initDataTable()
+    }
   }
 }
 
@@ -57,8 +68,100 @@ const formatPrice = (price: number) => {
 const viewPackage = (id: string) => router.push(`/packages/${id}`)
 const navigateToCreate = () => router.push('/packages/create')
 
+const initDataTable = () => {
+  if (!tableRef.value) return
+  dt = new DataTable(tableRef.value, {
+    data: mapPackagesToRows(),
+    columns: [
+      { title: 'Name', data: 'name' },
+      { title: 'Period', data: 'period' },
+      { title: 'Quota', data: 'quota' },
+      { title: 'Price', data: 'price' },
+      {
+        title: 'Status',
+        data: 'status',
+        render: (data: string, type: string, row: any) => {
+          if (type === 'display') return statusBadge(row.status)
+          return data
+        }
+      },
+      { title: 'User ID', data: 'userId' },
+      {
+        title: 'Actions',
+        data: 'id',
+        orderable: false,
+        searchable: false,
+        render: (id: string) => actionButtons(id)
+      }
+    ],
+    paging: true,
+    searching: false,
+    ordering: true,
+    info: true,
+    lengthChange: false
+  })
+}
+
+const loadDataIntoDataTable = () => {
+  if (!dt) return
+  dt.clear()
+  dt.rows.add(mapPackagesToRows())
+  dt.draw()
+}
+
+const mapPackagesToRows = () => {
+  return packages.value.map((p) => ({
+    id: p.id,
+    name: p.packageName,
+    period: formatPeriod(p.startDate, p.endDate),
+    quota: p.quota,
+    price: formatPrice(p.price),
+    status: p.status,
+    userId: p.userId
+  }))
+}
+
+const statusBadge = (status: string) => {
+  const st = status.toLowerCase()
+  const cls =
+    st === 'processed'
+      ? 'bg-green-100 text-green-700'
+      : st === 'pending'
+      ? 'bg-orange-100 text-orange-800'
+      : 'bg-gray-100 text-gray-700'
+  return `<span class="inline-block px-3 py-1 rounded-full text-sm font-semibold capitalize ${cls}">${status}</span>`
+}
+
+const actionButtons = (id: string) => {
+  return `<button class="dt-view-btn bg-indigo-500 hover:bg-indigo-600 text-white font-medium px-4 py-2 rounded-md text-sm transition" data-id="${id}">View</button>`
+}
+
 onMounted(() => {
   fetchPackages()
+  // delegate clicks for action buttons inside DataTable
+  const handler = (e: Event) => {
+    const target = e.target as HTMLElement
+    const btn = target.closest('.dt-view-btn') as HTMLButtonElement | null
+    if (btn && btn.dataset.id) {
+      viewPackage(btn.dataset.id!)
+    }
+  }
+  tableRef.value?.addEventListener('click', handler)
+  if (tableRef.value) {
+    (tableRef.value as any)._dtClickHandler = handler
+  }
+})
+
+onBeforeUnmount(() => {
+  if (dt) {
+    dt.destroy()
+    dt = null
+  }
+  const el = tableRef.value as any
+  if (el && el._dtClickHandler) {
+    el.removeEventListener('click', el._dtClickHandler)
+    delete el._dtClickHandler
+  }
 })
 </script>
 
@@ -127,7 +230,7 @@ onMounted(() => {
 
       <!-- Table -->
       <div v-else class="overflow-x-auto">
-        <table class="w-full border-collapse">
+        <table ref="tableRef" class="w-full border-collapse display">
           <thead class="bg-gray-50 border-b-2 border-gray-200">
             <tr>
               <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600 uppercase tracking-wide">
@@ -153,68 +256,8 @@ onMounted(() => {
               </th>
             </tr>
           </thead>
-          <tbody>
-            <tr
-              v-for="pkg in packages"
-              :key="pkg.id"
-              class="border-b border-gray-200 hover:bg-gray-50 transition"
-            >
-              <td class="px-6 py-4 font-semibold text-gray-800">{{ pkg.packageName }}</td>
-              <td class="px-6 py-4 min-w-[250px] text-gray-700">{{ formatPeriod(pkg.startDate, pkg.endDate) }}</td>
-              <td class="px-6 py-4 text-gray-600">{{ pkg.quota }}</td>
-              <td class="px-6 py-4 font-semibold text-green-600">{{ formatPrice(pkg.price) }}</td>
-              <td class="px-6 py-4">
-                <span
-                  :class="[
-                    'inline-block px-3 py-1 rounded-full text-sm font-semibold capitalize',
-                    pkg.status.toLowerCase() === 'processed'
-                      ? 'bg-green-100 text-green-700'
-                      : pkg.status.toLowerCase() === 'pending'
-                      ? 'bg-orange-100 text-orange-800'
-                      : 'bg-gray-100 text-gray-700'
-                  ]"
-                >
-                  {{ pkg.status }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-gray-600">{{ pkg.userId }}</td>
-              <td class="px-6 py-4 text-center">
-                <button
-                  class="bg-indigo-500 hover:bg-indigo-600 text-white font-medium px-4 py-2 rounded-md text-sm transition transform hover:-translate-y-0.5"
-                  @click="viewPackage(pkg.id)"
-                >
-                  View
-                </button>
-              </td>
-            </tr>
-          </tbody>
+          <tbody></tbody>
         </table>
-
-        <!-- Pagination -->
-        <div class="flex justify-between items-center px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <span class="text-sm text-gray-600">
-            Showing 1 to {{ packages.length }} of {{ packages.length }} packages
-          </span>
-          <div class="flex gap-2">
-            <button
-              class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-600 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
-              disabled
-            >
-              Previous
-            </button>
-            <button
-              class="px-3 py-1 border border-indigo-500 bg-indigo-500 text-white rounded-md text-sm"
-            >
-              1
-            </button>
-            <button
-              class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-600 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition"
-              disabled
-            >
-              Next
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </section>
