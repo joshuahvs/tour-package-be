@@ -132,11 +132,16 @@ public class PackageRestServiceImpl implements PackageRestService {
         }
 
         // Validate: All plans must have status FULFILLED
-        if (packageEntity.getPlans() == null || packageEntity.getPlans().isEmpty()) {
+        // Filter out soft-deleted plans (deletedAt != null)
+        List<Plan> activePlans = packageEntity.getPlans().stream()
+                .filter(plan -> plan.getDeletedAt() == null)
+                .collect(Collectors.toList());
+
+        if (activePlans.isEmpty()) {
             throw new RuntimeException("Cannot process package. Package must have at least one plan.");
         }
 
-        boolean allPlansFulfilled = packageEntity.getPlans().stream()
+        boolean allPlansFulfilled = activePlans.stream()
                 .allMatch(plan -> "FULFILLED".equalsIgnoreCase(plan.getStatus()));
 
         if (!allPlansFulfilled) {
@@ -148,20 +153,49 @@ public class PackageRestServiceImpl implements PackageRestService {
         packageEntity.setStatus("PROCESSED");
 
         // Booking activities: Reduce capacity
-        // For each plan's ordered quantities, reduce the activity capacity
-        for (Plan plan : packageEntity.getPlans()) {
-            if (plan.getOrderedQuantities() != null) {
-                for (var orderedQty : plan.getOrderedQuantities()) {
-                    var activity = orderedQty.getActivity();
-                    int newCapacity = activity.getCapacity() - orderedQty.getOrderedQuota();
+        // For each active plan's ordered quantities, reduce the activity capacity
+        for (Plan plan : activePlans) {
+            if (plan.getOrderedQuantities() == null) {
+                continue;
+            }
+
+            for (var orderedQty : plan.getOrderedQuantities()) {
+                if (orderedQty.getDeletedAt() != null) {
+                    continue;
+                }
+
+                var legacyActivity = orderedQty.getActivity();
+
+                if (legacyActivity != null) {
+                    int newCapacity = legacyActivity.getCapacity() - orderedQty.getOrderedQuota();
 
                     if (newCapacity < 0) {
                         throw new RuntimeException("Cannot process package. Activity '" +
-                                activity.getActivityName() + "' does not have enough capacity.");
+                                legacyActivity.getActivityName() + "' does not have enough capacity.");
                     }
 
-                    activity.setCapacity(newCapacity);
+                    legacyActivity.setCapacity(newCapacity);
+                    orderedQty.setQuota(newCapacity);
+                    continue;
                 }
+
+                var activityPlan = orderedQty.getActivityPlan();
+
+                if (activityPlan == null) {
+                    continue;
+                }
+
+                Package sourcePackage = activityPlan.getPackageEntity();
+                int currentCapacity = sourcePackage.getQuota();
+                int newCapacity = currentCapacity - orderedQty.getOrderedQuota();
+
+                if (newCapacity < 0) {
+                    throw new RuntimeException("Cannot process package. Activity '" +
+                            activityPlan.getPlanName() + "' does not have enough capacity.");
+                }
+
+                sourcePackage.setQuota(newCapacity);
+                orderedQty.setQuota(newCapacity);
             }
         }
 

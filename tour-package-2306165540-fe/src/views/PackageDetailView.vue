@@ -38,9 +38,9 @@ const canEdit = computed(() =>
 )
 
 const canProcess = computed(() =>
-  packageDetail.value?.status === 'PENDING' &&
+  packageDetail.value?.status?.toUpperCase() === 'PENDING' &&
   packageDetail.value?.plans.length > 0 &&
-  packageDetail.value.plans.every(plan => plan.status === 'FULFILLED')
+  packageDetail.value.plans.every(plan => plan.status?.toUpperCase() === 'FULFILLED')
 )
 
 const fetchPackageDetail = async () => {
