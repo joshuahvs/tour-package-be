@@ -21,8 +21,26 @@ configurations {
 	}
 }
 
+// Ensure Gradle resolves standard JVM variants and jar artifacts (avoid android classifier for snakeyaml)
+configurations.configureEach {
+	attributes.attribute(
+		org.gradle.api.attributes.java.TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
+		objects.named(org.gradle.api.attributes.java.TargetJvmEnvironment, 'standard-jvm')
+	)
+	attributes.attribute(
+		org.gradle.api.attributes.LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE,
+		objects.named(org.gradle.api.attributes.LibraryElements, org.gradle.api.attributes.LibraryElements.JAR)
+	)
+}
+
 repositories {
-	mavenCentral()
+	mavenCentral {
+		// Use only Maven POM/Artifact metadata to avoid Gradle module metadata variant issues (e.g., android classifier)
+		metadataSources {
+			mavenPom()
+			artifact()
+		}
+	}
 }
 
 dependencies {
@@ -30,6 +48,9 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation('com.github.javafaker:javafaker:1.0.2') {
+    	exclude group: 'org.yaml', module: 'snakeyaml'
+	}
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.h2database:h2'

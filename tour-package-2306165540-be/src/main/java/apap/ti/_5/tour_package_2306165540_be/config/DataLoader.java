@@ -8,15 +8,19 @@ import apap.ti._5.tour_package_2306165540_be.repository.ActivityRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.OrderedQuantityRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
+import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
@@ -62,7 +66,10 @@ public class DataLoader implements CommandLineRunner {
 
     private List<Activity> createActivities() {
         LocalDateTime now = LocalDateTime.now();
+        List<Activity> activities = new ArrayList<>();
 
+        // Keep original six activities to preserve references used by ordered
+        // quantities
         Activity activity1 = new Activity();
         activity1.setId("ACT-001");
         activity1.setActivityName("Economy Flight Jakarta-Bali");
@@ -135,7 +142,115 @@ public class DataLoader implements CommandLineRunner {
         activity6.setStartLocation("Soekarno-Hatta Airport");
         activity6.setEndLocation("Ngurah Rai Airport");
 
-        return Arrays.asList(activity1, activity2, activity3, activity4, activity5, activity6);
+        activities.addAll(Arrays.asList(activity1, activity2, activity3, activity4, activity5, activity6));
+
+        // Generate many more activities using JavaFaker
+        activities.addAll(generateFakerActivities(6));
+
+        return activities;
+    }
+
+    private List<Activity> generateFakerActivities(int existingCount) {
+        // Start numbering after the existing fixed activities
+        int nextIndex = existingCount + 1;
+        final int perType = 50; // generate 50 for each type (total +150)
+        List<Activity> list = new ArrayList<>();
+
+        Faker faker = new Faker(Locale.forLanguageTag("id-ID"));
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+
+        // Some Indonesian locations/provinces to keep things realistic
+        List<String> provinces = Arrays.asList(
+                "DKI Jakarta (Provinsi)", "Bali (Provinsi)", "Jawa Barat (Provinsi)",
+                "Jawa Tengah (Provinsi)", "DI Yogyakarta (Provinsi)", "Jawa Timur (Provinsi)",
+                "Sumatera Utara (Provinsi)", "Sumatera Barat (Provinsi)", "Aceh", "Riau",
+                "Kalimantan Timur (Provinsi)", "Sulawesi Selatan (Provinsi)");
+
+        // Flights
+        for (int i = 0; i < perType; i++) {
+            String origin = randomPickDifferent(provinces, null);
+            String dest = randomPickDifferent(provinces, origin);
+            LocalDateTime start = now.plusDays(randBetween(1, 60)).withHour(randBetween(5, 22))
+                    .withMinute(randBetween(0, 59));
+            LocalDateTime end = start.plusHours(randBetween(1, 3)).plusMinutes(randBetween(0, 45));
+
+            Activity a = new Activity();
+            a.setId(String.format("ACT-%03d", nextIndex++));
+            a.setActivityName(String.format("%s Flight %s - %s",
+                    faker.company().name(), cleanProvince(origin), cleanProvince(dest)));
+            a.setActivityItem("Flight Ticket");
+            a.setCapacity(randBetween(100, 250));
+            a.setPrice((long) randBetween(500_000, 3_000_000));
+            a.setActivityType("Flight");
+            a.setStartDate(start);
+            a.setEndDate(end);
+            a.setStartLocation(origin);
+            a.setEndLocation(dest);
+            list.add(a);
+        }
+
+        // Accommodation
+        for (int i = 0; i < perType; i++) {
+            String city = randomPickDifferent(provinces, null);
+            LocalDateTime start = now.plusDays(randBetween(1, 90)).withHour(12).withMinute(0);
+            LocalDateTime end = start.plusDays(randBetween(1, 7)).withHour(11).withMinute(0);
+
+            Activity a = new Activity();
+            a.setId(String.format("ACT-%03d", nextIndex++));
+            a.setActivityName(String.format("%s Hotel Stay - %s",
+                    faker.company().name(), cleanProvince(city)));
+            a.setActivityItem("Room, Breakfast Included");
+            a.setCapacity(randBetween(10, 100));
+            a.setPrice((long) randBetween(200_000, 2_000_000));
+            a.setActivityType("Accommodation");
+            a.setStartDate(start);
+            a.setEndDate(end);
+            a.setStartLocation(city);
+            a.setEndLocation(city);
+            list.add(a);
+        }
+
+        // Vehicle Rental
+        for (int i = 0; i < perType; i++) {
+            String city = randomPickDifferent(provinces, null);
+            LocalDateTime start = now.plusDays(randBetween(1, 60)).withHour(randBetween(7, 20))
+                    .withMinute(randBetween(0, 59));
+            LocalDateTime end = start.plusHours(randBetween(2, 12));
+
+            Activity a = new Activity();
+            a.setId(String.format("ACT-%03d", nextIndex++));
+            a.setActivityName(String.format("%s Car Rental",
+                    faker.ancient().titan()));
+            a.setActivityItem("Car, Insurance");
+            a.setCapacity(randBetween(10, 50));
+            a.setPrice((long) randBetween(300_000, 1_000_000));
+            a.setActivityType("Vehicle Rental");
+            a.setStartDate(start);
+            a.setEndDate(end);
+            a.setStartLocation(city);
+            a.setEndLocation(city);
+            list.add(a);
+        }
+
+        return list;
+    }
+
+    private int randBetween(int min, int max) {
+        return ThreadLocalRandom.current().nextInt(min, max + 1);
+    }
+
+    private String randomPickDifferent(List<String> list, String notEqual) {
+        String pick;
+        do {
+            pick = list.get(ThreadLocalRandom.current().nextInt(list.size()));
+        } while (notEqual != null && pick.equals(notEqual));
+        return pick;
+    }
+
+    private String cleanProvince(String s) {
+        // Shorten label e.g., "DKI Jakarta (Provinsi)" -> "DKI Jakarta"
+        int idx = s.indexOf(" (");
+        return idx > 0 ? s.substring(0, idx) : s;
     }
 
     private List<Package> createPackages() {
