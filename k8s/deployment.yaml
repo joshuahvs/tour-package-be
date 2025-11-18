@@ -23,7 +23,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: tour-package-be-config
-                  key: DATABASE_URL_PROD_1
+                  key: DATABASE_URL_PROD
 
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
