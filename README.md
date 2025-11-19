@@ -46,8 +46,6 @@ Pada Docker (Database), mekanisme ini diterapkan dengan menambahkan baris restar
 9. Keuntungan Kubernetes dibanding run image biasa 
 Keuntungan utamanya adalah manajemen otomatis dan skalabilitas. Dengan Kubernetes, kita mendapatkan fitur Rolling Update (update aplikasi tanpa downtime), Self-Healing (otomatis restart pod yang crash atau error), dan Load Balancing bawaan antar replika. Jika hanya menggunakan docker run biasa, proses update harus mematikan container lama (downtime), dan kita harus memonitor serta me-restart container secara manual jika terjadi crash.
 
-Berikut adalah jawaban untuk pertanyaan nomor 10 dan 11 dalam bentuk paragraf:
-
 10. Perbedaan Service Kubernetes dan Alasan Memilih ClusterIP 
 Perbedaan mendasar ketiga tipe service terletak pada aksesibilitasnya: ClusterIP hanya memberikan IP internal yang hanya bisa diakses dari dalam cluster, NodePort membuka port spesifik pada setiap node server agar bisa diakses langsung dari luar, sedangkan LoadBalancer menggunakan penyedia cloud untuk mengatur trafik eksternal melalui IP publik khusus. Untuk praktikum ini, ClusterIP adalah pilihan yang paling tepat karena kita menggunakan Ingress Controller sebagai pintu gerbang utama trafik dari internet. Ingress bertugas menerima permintaan dari luar dan meneruskannya ke service yang sesuai di dalam cluster, sehingga service aplikasi cukup berjalan secara privat menggunakan ClusterIP tanpa perlu diekspos satu per satu, menjadikan arsitektur jaringan lebih rapi dan aman.
 
