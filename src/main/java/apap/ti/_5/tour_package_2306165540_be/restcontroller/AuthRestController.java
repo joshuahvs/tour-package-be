@@ -1,11 +1,14 @@
 package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
 import apap.ti._5.tour_package_2306165540_be.restdto.request.LoginRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.RegisterRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.UpsertEndUserRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.EndUserResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.LoginResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.ProfileRestService;
 import apap.ti._5.tour_package_2306165540_be.security.jwt.JwtUtils;
+import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +58,44 @@ public class AuthRestController {
         } catch (Exception ex) {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.setMessage("Gagal melakukan login: " + ex.getMessage());
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<BaseResponseDTO<EndUserResponseDTO>> register(@RequestBody RegisterRequestDTO requestDTO) {
+        BaseResponseDTO<EndUserResponseDTO> response = new BaseResponseDTO<>();
+        try {
+            UpsertEndUserRequestDTO upsert = new UpsertEndUserRequestDTO();
+            upsert.setUsername(requestDTO.getUsername());
+            upsert.setEmail(requestDTO.getEmail());
+            upsert.setFullName(requestDTO.getFullName());
+            upsert.setPhoneNumber(requestDTO.getPhoneNumber());
+            upsert.setPassword(requestDTO.getPassword());
+            upsert.setOrganizationName(requestDTO.getOrganizationName());
+            upsert.setNotes(requestDTO.getNotes());
+            String role = requestDTO.getRole();
+            if (role == null || role.isBlank()) {
+                role = RoleType.CUSTOMER.name();
+            }
+            upsert.setRole(role);
+            upsert.setActive(true);
+
+            EndUserResponseDTO user = profileRestService.upsertEndUser(upsert);
+            response.setStatus(HttpStatus.CREATED.value());
+            response.setMessage("Registrasi berhasil.");
+            response.setData(user);
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException ex) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(ex.getMessage());
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception ex) {
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Gagal melakukan registrasi: " + ex.getMessage());
             response.setTimestamp(new Date());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
