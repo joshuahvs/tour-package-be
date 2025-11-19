@@ -12,7 +12,6 @@ import java.util.Date;
 
 @RestController
 @RequestMapping("/api/statistics")
-@CrossOrigin(origins = "*")
 public class StatisticsRestController {
 
     private final StatisticsRestService statisticsRestService;

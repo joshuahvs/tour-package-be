@@ -18,7 +18,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/locations")
-@CrossOrigin(origins = "*")
 public class LocationRestController {
 
     private static final String WILAYAH_API_URL = "https://wilayah.id/api/provinces.json";

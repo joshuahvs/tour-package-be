@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/package")
-@CrossOrigin(origins = "*")
 public class PackageRestController {
 
     private final PackageRestService packageRestService;

@@ -15,7 +15,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/packages")
-@CrossOrigin(origins = "*")
 public class PlanRestController {
 
     private final PlanRestService planRestService;

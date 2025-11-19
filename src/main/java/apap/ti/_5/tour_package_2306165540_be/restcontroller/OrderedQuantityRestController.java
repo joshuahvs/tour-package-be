@@ -15,7 +15,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/ordered-activities")
-@CrossOrigin(origins = "*")
 public class OrderedQuantityRestController {
 
     private final PlanRestService planRestService;
