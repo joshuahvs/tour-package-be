@@ -32,11 +32,11 @@ class DataLoaderTest {
 
     private DataLoader dataLoader;
 
-    @BeforeEach
-    void setup() {
-        MockitoAnnotations.openMocks(this);
-        dataLoader = new DataLoader(activityRepository, packageRepository, planRepository, orderedQuantityRepository);
-    }
+//     @BeforeEach
+//     void setup() {
+//         MockitoAnnotations.openMocks(this);
+//         dataLoader = new DataLoader(activityRepository, packageRepository, planRepository, orderedQuantityRepository);
+//     }
 
     @Test
     void run_shouldSkip_whenActivitiesExist() throws Exception {

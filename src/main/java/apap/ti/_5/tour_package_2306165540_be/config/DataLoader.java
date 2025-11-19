@@ -4,7 +4,9 @@ import apap.ti._5.tour_package_2306165540_be.model.Activity;
 import apap.ti._5.tour_package_2306165540_be.model.OrderedQuantity;
 import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
+import apap.ti._5.tour_package_2306165540_be.model.profile.*;
 import apap.ti._5.tour_package_2306165540_be.repository.ActivityRepository;
+import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.OrderedQuantityRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
@@ -12,6 +14,7 @@ import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -34,18 +37,24 @@ public class DataLoader implements CommandLineRunner {
     private final PackageRepository packageRepository;
     private final PlanRepository planRepository;
     private final OrderedQuantityRepository orderedQuantityRepository;
+    private final EndUserRepository endUserRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) throws Exception {
-        // Check if data already exists
-        if (activityRepository.count() > 0) {
-            System.out.println("Database already has data. Skipping initialization.");
-            return;
-        }
-
         System.out.println("Initializing database with fake data...");
 
         LocalDateTime baseTime = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
+
+        // Seed end users for Profile Service - always ensure they exist with correct
+        // passwords
+        ensureSeedUsers();
+
+        // Check if data already exists
+        if (activityRepository.count() > 0) {
+            System.out.println("Database already has data. Skipping activity/package/plan initialization.");
+            return;
+        }
 
         // Create Activities
         List<Activity> activities = createActivities(baseTime);
@@ -68,10 +77,83 @@ public class DataLoader implements CommandLineRunner {
         packageRepository.saveAll(packages);
 
         System.out.println("Database initialization completed!");
+        System.out.println("Created " + endUserRepository.count() + " users");
         System.out.println("Created " + activities.size() + " activities");
         System.out.println("Created " + packages.size() + " packages");
         System.out.println("Created " + plans.size() + " plans");
         System.out.println("Created " + orderedQuantities.size() + " ordered quantities");
+    }
+
+    private void ensureSeedUsers() {
+        System.out.println("Ensuring seed users exist with correct passwords...");
+
+        upsertUser(new SuperAdmin(), "superadmin", "superadmin@travelapap.id", "Super Admin",
+                "+62-21-555-0001", "pass", "TravelAPAP Center", "Pengelola utama sistem.");
+
+        upsertUser(new AccommodationOwner(), "accommodationowner", "owner@staycation.id",
+                "Accommodation Owner", "+62-812-1234-7001", "pass", "Staycation Indonesia",
+                "Mengelola seluruh inventori penginapan.");
+
+        upsertUser(new FlightAirline(), "flightairline", "ops@garuda-connect.id", "Flight Airline",
+                "+62-21-3300-9911",
+                "pass", "Garuda Connect", "Menyediakan layanan penerbangan premium.");
+
+        upsertUser(new InsuranceProvider(), "insuranceprovider", "support@travelshield.id", "Insurance Provider",
+                "+62-812-7777-4455", "pass", "Travel Shield", "Fokus pada proteksi perjalanan.");
+
+        upsertUser(new TourPackageVendor(), "tourpackagevendor", "sales@wonderfuljourney.id",
+                "Tour Package Vendor", "+62-811-5566-7788", "pass", "Wonderful Journey",
+                "Menyusun itinerary wisata domestik.");
+
+        upsertUser(new RentalVendor(), "rentalvendor", "contact@driveasy.id", "Rental Vendor",
+                "+62-811-9988-1122", "pass", "Driveasy Fleet", "Menyediakan armada rental.");
+
+        upsertUser(new Customer(), "customer", "customer@apap.id", "APAP Customer",
+                "+62-815-3333-2211", "pass", null, "Customer percobaan untuk pengujian.");
+
+        System.out.println("Seed users ensured: " + endUserRepository.count() + " total users in database");
+    }
+
+    private void upsertUser(EndUser template, String username, String email, String fullName,
+            String phone, String password, String organization, String notes) {
+        EndUser existingUser = endUserRepository.findByUsernameIgnoreCase(username).orElse(null);
+
+        if (existingUser != null) {
+            // Update existing user with new password
+            existingUser.setEmail(email);
+            existingUser.setFullName(fullName);
+            existingUser.setPhoneNumber(phone);
+            if (password != null) {
+                existingUser.setPassword(passwordEncoder.encode(password));
+            }
+            existingUser.setOrganizationName(organization);
+            existingUser.setNotes(notes);
+            existingUser.setActive(true);
+            existingUser.setUpdatedAt(LocalDateTime.now());
+            endUserRepository.save(existingUser);
+        } else {
+            // Create new user
+            EndUser newUser = buildUser(template, username, email, fullName, phone, password, organization, notes);
+            endUserRepository.save(newUser);
+        }
+    }
+
+    private EndUser buildUser(EndUser user, String username, String email, String fullName,
+            String phone, String password, String organization, String notes) {
+        user.setId(UUID.randomUUID());
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setFullName(fullName);
+        user.setPhoneNumber(phone);
+        if (password != null) {
+            user.setPassword(passwordEncoder.encode(password));
+        }
+        user.setOrganizationName(organization);
+        user.setNotes(notes);
+        user.setActive(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        return user;
     }
 
     private List<Activity> createActivities(LocalDateTime baseTime) {

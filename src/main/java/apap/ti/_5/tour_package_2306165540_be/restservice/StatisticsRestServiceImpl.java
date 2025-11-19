@@ -5,7 +5,6 @@ import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.repository.OrderedQuantityRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.ActivityTypeRevenueDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.RevenueStatisticsResponseDTO;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
