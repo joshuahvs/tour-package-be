@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -14,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -49,9 +47,25 @@ public class WebSecurityConfig {
                         .requestMatchers("/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
 
-                        // Add your specific endpoint authorizations here
-                        // Example:
+                        //TOUR PACKAGE MODULE
                         .requestMatchers("/api/packages").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers("/api/packages/*").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers("/api/packages/*/process").hasAuthority("CUSTOMER")
+                        .requestMatchers("/api/packages/*/plans/**").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        
+                        .requestMatchers("/api/plans").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers("/api/plans/*").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers("/api/plans/*/ordered-activities").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        
+                        .requestMatchers("/api/activities").hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR", "FLIGHT_AIRLINE", "ACCOMMODATION_OWNER", "RENTAL_VENDOR", "CUSTOMER")
+                        .requestMatchers("/api/activities/*").hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR", "FLIGHT_AIRLINE", "ACCOMMODATION_OWNER", "RENTAL_VENDOR")
+                        .requestMatchers("/api/activities/create").hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR", "FLIGHT_AIRLINE", "ACCOMMODATION_OWNER", "RENTAL_VENDOR")
+                        
+                        .requestMatchers("/api/ordered-activities").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers("/api/ordered-activities/*").hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        
+                        .requestMatchers("/api/statistics/**").hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR")
+
 
                         .anyRequest().authenticated())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -71,8 +85,7 @@ public class WebSecurityConfig {
         return http.build();
     }
 
-    // ===================== WEB SECURITY (untuk /login, /css, dll)
-    // =====================
+    // ===================== WEB SECURITY =====================
     @Bean
     @Order(2)
     public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
