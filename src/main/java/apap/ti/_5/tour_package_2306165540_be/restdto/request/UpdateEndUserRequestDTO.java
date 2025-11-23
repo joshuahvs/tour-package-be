@@ -20,6 +20,9 @@ public class UpdateEndUserRequestDTO {
     @Size(max = 160, message = "Nama lengkap maksimal 160 karakter.")
     private String fullName;
 
+    @Size(max = 20, message = "Gender maksimal 20 karakter.")
+    private String gender;
+
     @Size(max = 30, message = "Nomor telepon maksimal 30 karakter.")
     private String phoneNumber;
 

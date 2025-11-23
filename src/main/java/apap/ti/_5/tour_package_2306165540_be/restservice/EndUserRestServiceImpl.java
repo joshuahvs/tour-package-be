@@ -76,21 +76,31 @@ public class EndUserRestServiceImpl implements EndUserRestService {
 
     @Override
     public EndUserResponseDTO createEndUser(CreateEndUserRequestDTO requestDTO) {
-        RoleType targetRole = resolveRole(requestDTO.getRole());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSuperadmin = hasAuthority(authentication, "ROLE_SUPERADMIN");
+
+        // Jika role tidak diisi, tentukan role berdasarkan pembuat
+        RoleType targetRole;
+        if (requestDTO.getRole() == null || requestDTO.getRole().trim().isEmpty()) {
+            targetRole = determineRoleFromCreator(authentication, isSuperadmin);
+        } else {
+            targetRole = RoleType.fromCode(requestDTO.getRole().trim());
+        }
+
+        // SUPERADMIN tidak dapat dibuat melalui API, hanya lewat sistem
         if (targetRole == RoleType.SUPERADMIN) {
-            throw new AccessDeniedException("Superadmin hanya dapat ditambahkan oleh sistem.");
+            throw new AccessDeniedException("Superadmin hanya dapat ditambahkan oleh sistem di awal run program.");
         }
 
         validateUniqueness(requestDTO.getUsername(), requestDTO.getEmail(), null);
 
         EndUser entity = instantiateRole(targetRole);
         entity.setId(UUID.randomUUID());
-        applyCommonFields(entity, requestDTO.getUsername(), requestDTO.getEmail(), requestDTO.getFullName(),
-                requestDTO.getOrganizationName(), requestDTO.getNotes());
+        applyCommonFieldsWithGender(entity, requestDTO.getUsername(), requestDTO.getEmail(), requestDTO.getFullName(),
+                requestDTO.getGender(), requestDTO.getOrganizationName(), requestDTO.getNotes());
         entity.setPassword(passwordEncoder.encode(requestDTO.getPassword().trim()));
         entity.setActive(requestDTO.getActive() == null || requestDTO.getActive());
         entity.setCreatedAt(LocalDateTime.now());
-        entity.setUpdatedAt(LocalDateTime.now());
 
         if (entity instanceof Customer customer) {
             customer.setSaldo(requestDTO.getSaldo() != null ? requestDTO.getSaldo() : 0L);
@@ -125,6 +135,9 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         }
         if (hasText(requestDTO.getFullName())) {
             existing.setFullName(requestDTO.getFullName().trim());
+        }
+        if (requestDTO.getGender() != null) {
+            existing.setGender(trimToNull(requestDTO.getGender()));
         }
         if (existing instanceof RentalVendor rv && requestDTO.getPhoneNumber() != null) {
             String phoneNumber = requestDTO.getPhoneNumber().trim();
@@ -198,12 +211,23 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         user.setNotes(trimToNull(notes));
     }
 
+    private void applyCommonFieldsWithGender(EndUser user, String username, String email, String fullName,
+            String gender, String organizationName, String notes) {
+        user.setUsername(username.trim());
+        user.setEmail(email.trim());
+        user.setFullName(fullName.trim());
+        user.setGender(trimToNull(gender));
+        user.setOrganizationName(trimToNull(organizationName));
+        user.setNotes(trimToNull(notes));
+    }
+
     private EndUserResponseDTO toEndUserResponse(EndUser user) {
         EndUserResponseDTO dto = new EndUserResponseDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setFullName(user.getFullName());
+        dto.setGender(user.getGender());
         if (user instanceof RentalVendor rv) {
             dto.setPhoneNumber(rv.getPhone());
         }
@@ -277,6 +301,32 @@ public class EndUserRestServiceImpl implements EndUserRestService {
             return RoleType.CUSTOMER;
         }
         return RoleType.fromCode(role.trim());
+    }
+
+    /**
+     * Menentukan role EndUser baru berdasarkan siapa yang membuatnya.
+     * Jika SUPERADMIN yang membuat, default ke CUSTOMER.
+     * Jika role lain yang membuat, default ke role pembuat itu sendiri.
+     */
+    private RoleType determineRoleFromCreator(Authentication authentication, boolean isSuperadmin) {
+        if (isSuperadmin) {
+            // SUPERADMIN dapat membuat user apa saja, default ke CUSTOMER
+            return RoleType.CUSTOMER;
+        }
+
+        // Non-SUPERADMIN membuat user dengan role yang sama dengan dirinya
+        if (authentication == null || authentication.getName() == null) {
+            return RoleType.CUSTOMER;
+        }
+
+        // Cari user yang sedang login untuk mendapatkan role-nya
+        Optional<EndUser> currentUser = endUserRepository.findByUsernameIgnoreCase(authentication.getName());
+        if (currentUser.isPresent()) {
+            return currentUser.get().getRoleType();
+        }
+
+        // Fallback ke CUSTOMER jika tidak ditemukan
+        return RoleType.CUSTOMER;
     }
 
     private EndUser instantiateRole(RoleType roleType) {

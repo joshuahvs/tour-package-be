@@ -88,6 +88,9 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/end-users/customers").hasAnyAuthority(
                                 "SUPERADMIN", "FLIGHT_AIRLINE", "ACCOMMODATION_OWNER",
                                 "RENTAL_VENDOR", "INSURANCE_PROVIDER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers(HttpMethod.GET, "/api/end-users/customer").hasAnyAuthority(
+                                "SUPERADMIN", "FLIGHT_AIRLINE", "ACCOMMODATION_OWNER",
+                                "RENTAL_VENDOR", "INSURANCE_PROVIDER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers(HttpMethod.POST, "/api/end-users/create").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/end-users/*/edit").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/end-users/*/delete").hasAuthority("SUPERADMIN")

@@ -40,6 +40,9 @@ public abstract class EndUser {
     @Column(name = "full_name", nullable = false, length = 160)
     private String fullName;
 
+    @Column(name = "gender", length = 20)
+    private String gender;
+
     // Align with existing DB column name 'phone' (was 'phone_number') and allow
     // nullable
 
@@ -58,16 +61,15 @@ public abstract class EndUser {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = true)
     private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onPersist() {
-        LocalDateTime now = LocalDateTime.now();
         if (createdAt == null) {
-            createdAt = now;
+            createdAt = LocalDateTime.now();
         }
-        updatedAt = now;
+        // updatedAt dibiarkan null saat pertama kali dibuat
     }
 
     @PreUpdate

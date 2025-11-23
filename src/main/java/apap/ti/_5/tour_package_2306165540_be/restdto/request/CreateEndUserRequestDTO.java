@@ -20,6 +20,9 @@ public class CreateEndUserRequestDTO {
     @Size(max = 160, message = "Nama lengkap maksimal 160 karakter.")
     private String fullName;
 
+    @Size(max = 20, message = "Gender maksimal 20 karakter.")
+    private String gender;
+
     @Size(max = 30, message = "Nomor telepon maksimal 30 karakter.")
     private String phoneNumber;
 
@@ -33,9 +36,6 @@ public class CreateEndUserRequestDTO {
     @Size(max = 255, message = "Catatan maksimal 255 karakter.")
     private String notes;
 
-    /**
-     * Role target. Jika null maka sistem akan menetapkan CUSTOMER sebagai default.
-     */
     private String role;
 
     private Boolean active;

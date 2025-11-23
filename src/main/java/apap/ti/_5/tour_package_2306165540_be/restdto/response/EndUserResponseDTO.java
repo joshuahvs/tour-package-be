@@ -11,6 +11,7 @@ public class EndUserResponseDTO {
     private String username;
     private String email;
     private String fullName;
+    private String gender;
     private String phoneNumber;
     private String role;
     private String roleDisplayName;
