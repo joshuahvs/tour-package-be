@@ -50,47 +50,47 @@ public class WebSecurityConfig {
 
                         // TOUR PACKAGE MODULE
                         .requestMatchers("/api/packages")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers("/api/packages/*")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
-                        .requestMatchers("/api/packages/*/process").hasAuthority("ROLE_CUSTOMER")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers("/api/packages/*/process").hasAuthority("CUSTOMER")
                         .requestMatchers("/api/packages/*/plans/**")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
 
                         .requestMatchers("/api/plans")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers("/api/plans/*")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers("/api/plans/*/ordered-activities")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
 
                         .requestMatchers("/api/activities")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_TOUR_PACKAGE_VENDOR", "ROLE_FLIGHT_AIRLINE",
-                                "ROLE_ACCOMMODATION_OWNER", "ROLE_RENTAL_VENDOR", "ROLE_CUSTOMER")
+                        .hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR", "FLIGHT_AIRLINE",
+                                "ACCOMMODATION_OWNER", "RENTAL_VENDOR", "CUSTOMER")
                         .requestMatchers("/api/activities/*")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_TOUR_PACKAGE_VENDOR", "ROLE_FLIGHT_AIRLINE",
-                                "ROLE_ACCOMMODATION_OWNER", "ROLE_RENTAL_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR", "FLIGHT_AIRLINE",
+                                "ACCOMMODATION_OWNER", "RENTAL_VENDOR")
                         .requestMatchers("/api/activities/create")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_TOUR_PACKAGE_VENDOR", "ROLE_FLIGHT_AIRLINE",
-                                "ROLE_ACCOMMODATION_OWNER", "ROLE_RENTAL_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR", "FLIGHT_AIRLINE",
+                                "ACCOMMODATION_OWNER", "RENTAL_VENDOR")
 
                         .requestMatchers("/api/ordered-activities")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers("/api/ordered-activities/*")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_CUSTOMER", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
 
                         .requestMatchers("/api/statistics/**")
-                        .hasAnyAuthority("ROLE_SUPERADMIN", "ROLE_TOUR_PACKAGE_VENDOR")
+                        .hasAnyAuthority("SUPERADMIN", "TOUR_PACKAGE_VENDOR")
 
                         // END USER MODULE
-                        .requestMatchers(HttpMethod.GET, "/api/end-users").hasAuthority("ROLE_SUPERADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/end-users/role/**").hasAuthority("ROLE_SUPERADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/end-users").hasAuthority("SUPERADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/end-users/role/**").hasAuthority("SUPERADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/end-users/customers").hasAnyAuthority(
-                                "ROLE_SUPERADMIN", "ROLE_FLIGHT_AIRLINE", "ROLE_ACCOMMODATION_OWNER",
-                                "ROLE_RENTAL_VENDOR", "ROLE_INSURANCE_PROVIDER", "ROLE_TOUR_PACKAGE_VENDOR")
+                                "SUPERADMIN", "FLIGHT_AIRLINE", "ACCOMMODATION_OWNER",
+                                "RENTAL_VENDOR", "INSURANCE_PROVIDER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers(HttpMethod.POST, "/api/end-users/create").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/end-users/*/edit").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/api/end-users/*/delete").hasAuthority("ROLE_SUPERADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/end-users/*/delete").hasAuthority("SUPERADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/end-users/**").authenticated()
 
                         .anyRequest().authenticated())
