@@ -1,264 +1,262 @@
-// package apap.ti._5.tour_package_2306165540_be.restcontroller;
+package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
-// import org.springframework.http.HttpStatus;
-// import org.springframework.http.ResponseEntity;
-// import org.springframework.validation.BindingResult;
-// import org.springframework.validation.FieldError;
-// import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.*;
 
-// import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
-// import apap.ti._5.tour_package_2306165540_be.restdto.response.EndUserResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.CreateEndUserRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateEndUserRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.CustomerResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.EndUserResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restservice.EndUserRestService;
+import jakarta.validation.Valid;
 
-// import java.util.Date;
-// import java.util.List;
-// import java.util.UUID;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 
-// @RestController
-// @RequestMapping("/api/end-users")
-// public class EndUserRestController {
+@RestController
+@RequestMapping("/api/end-users")
+public class EndUserRestController {
 
-//     private final EndUserRestService endUserRestService;
+    private final EndUserRestService endUserRestService;
 
-//     public EndUserRestController(EndUserRestService endUserRestService) {
-//         this.endUserRestService = endUserRestService;
-//     }
+    public EndUserRestController(EndUserRestService endUserRestService) {
+        this.endUserRestService = endUserRestService;
+    }
 
-//     public static final String GET_ALL_END_USERS = "";
-//     public static final String GET_END_USERS_BY_ROLE = "/role/{roleType}";
-//     public static final String GET_ALL_CUSTOMERS = "/customers";
-//     public static final String GET_END_USER_DETAIL = "/{identifier}";
-//     public static final String CREATE_END_USER = "/create";
-//     public static final String UPDATE_END_USER = "/{id}/edit";
-//     public static final String DELETE_END_USER = "/{id}/delete";
+    public static final String GET_ALL_END_USERS = "";
+    public static final String GET_END_USERS_BY_ROLE = "/role/{roleType}";
+    public static final String GET_ALL_CUSTOMERS = "/customers";
+    public static final String GET_END_USER_DETAIL = "/{identifier}";
+    public static final String CREATE_END_USER = "/create";
+    public static final String UPDATE_END_USER = "/{id}/edit";
+    public static final String DELETE_END_USER = "/{id}/delete";
 
-//     // GET / - Get all EndUsers (Superadmin only)
-//     @GetMapping(GET_ALL_END_USERS)
-//     public ResponseEntity<BaseResponseDTO<List<EndUserResponseDTO>>> getAllEndUsers() {
-        
-//         var baseResponseDTO = new BaseResponseDTO<List<EndUserResponseDTO>>();
+    @GetMapping(GET_ALL_END_USERS)
+    public ResponseEntity<BaseResponseDTO<List<EndUserResponseDTO>>> getAllEndUsers() {
 
-//         try {
-//             List<EndUserResponseDTO> endUsers = endUserRestService.getAllEndUsers();
+        var baseResponseDTO = new BaseResponseDTO<List<EndUserResponseDTO>>();
 
-//             baseResponseDTO.setStatus(HttpStatus.OK.value());
-//             baseResponseDTO.setData(endUsers);
-//             baseResponseDTO.setMessage("End users retrieved successfully");
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        try {
+            List<EndUserResponseDTO> endUsers = endUserRestService.getAllEndUsers();
 
-//         } catch (Exception e) {
-//             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//             baseResponseDTO.setMessage("Failed to retrieve end users: " + e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-//         }
-//     }
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(endUsers);
+            baseResponseDTO.setMessage("End users retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
 
-//     // GET /role/{roleType} - Get EndUsers by role (Superadmin only)
-//     @GetMapping(GET_END_USERS_BY_ROLE)
-//     public ResponseEntity<BaseResponseDTO<List<EndUserResponseDTO>>> getEndUsersByRole(
-//             @PathVariable String roleType) {
-        
-//         var baseResponseDTO = new BaseResponseDTO<List<EndUserResponseDTO>>();
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve end users: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-//         try {
-//             List<EndUserResponseDTO> endUsers = endUserRestService.getEndUsersByRole(roleType);
+    @GetMapping(GET_END_USERS_BY_ROLE)
+    public ResponseEntity<BaseResponseDTO<List<EndUserResponseDTO>>> getEndUsersByRole(
+            @PathVariable String roleType) {
 
-//             baseResponseDTO.setStatus(HttpStatus.OK.value());
-//             baseResponseDTO.setData(endUsers);
-//             baseResponseDTO.setMessage("End users filtered by role retrieved successfully");
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        var baseResponseDTO = new BaseResponseDTO<List<EndUserResponseDTO>>();
 
-//         } catch (IllegalArgumentException e) {
-//             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-//             baseResponseDTO.setMessage(e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-//         } catch (Exception e) {
-//             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//             baseResponseDTO.setMessage("Failed to retrieve end users by role: " + e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-//         }
-//     }
+        try {
+            List<EndUserResponseDTO> endUsers = endUserRestService.getEndUsersByRole(roleType);
 
-//     // GET /customers - Get all Customers with search functionality
-//     @GetMapping(GET_ALL_CUSTOMERS)
-//     public ResponseEntity<BaseResponseDTO<List<CustomerResponseDTO>>> getAllCustomers(
-//             @RequestParam(required = false) String name,
-//             @RequestParam(required = false) String email) {
-        
-//         var baseResponseDTO = new BaseResponseDTO<List<CustomerResponseDTO>>();
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(endUsers);
+            baseResponseDTO.setMessage("End users filtered by role retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
 
-//         try {
-//             List<CustomerResponseDTO> customers = endUserRestService.searchCustomers(name, email);
+        } catch (IllegalArgumentException e) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage(e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve end users by role: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-//             baseResponseDTO.setStatus(HttpStatus.OK.value());
-//             baseResponseDTO.setData(customers);
-//             baseResponseDTO.setMessage("Customers retrieved successfully");
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+    @GetMapping(GET_ALL_CUSTOMERS)
+    public ResponseEntity<BaseResponseDTO<List<CustomerResponseDTO>>> getAllCustomers(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email) {
 
-//         } catch (Exception e) {
-//             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//             baseResponseDTO.setMessage("Failed to retrieve customers: " + e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-//         }
-//     }
+        var baseResponseDTO = new BaseResponseDTO<List<CustomerResponseDTO>>();
 
-//     // GET /{identifier} - Get EndUser detail by id, username, or email
-//     @GetMapping(GET_END_USER_DETAIL)
-//     public ResponseEntity<BaseResponseDTO<EndUserResponseDTO>> getEndUserDetail(@PathVariable String identifier) {
-//         var baseResponseDTO = new BaseResponseDTO<EndUserResponseDTO>();
+        try {
+            List<CustomerResponseDTO> customers = endUserRestService.searchCustomers(name, email);
 
-//         try {
-//             EndUserResponseDTO endUser = endUserRestService.getEndUserByIdOrUsernameOrEmail(identifier);
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(customers);
+            baseResponseDTO.setMessage("Customers retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
 
-//             if (endUser == null) {
-//                 baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
-//                 baseResponseDTO.setMessage("EndUser with identifier " + identifier + " not found");
-//                 baseResponseDTO.setTimestamp(new Date());
-//                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
-//             }
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve customers: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-//             baseResponseDTO.setStatus(HttpStatus.OK.value());
-//             baseResponseDTO.setData(endUser);
-//             baseResponseDTO.setMessage("EndUser retrieved successfully");
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+    @GetMapping(GET_END_USER_DETAIL)
+    public ResponseEntity<BaseResponseDTO<EndUserResponseDTO>> getEndUserDetail(@PathVariable String identifier) {
+        var baseResponseDTO = new BaseResponseDTO<EndUserResponseDTO>();
 
-//         } catch (Exception e) {
-//             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//             baseResponseDTO.setMessage("Failed to retrieve end user: " + e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-//         }
-//     }
+        try {
+            EndUserResponseDTO endUser = endUserRestService.getEndUserByIdOrUsernameOrEmail(identifier);
 
-//     // POST /create - Create new EndUser
-//     @PostMapping(CREATE_END_USER)
-//     public ResponseEntity<BaseResponseDTO<EndUserResponseDTO>> createEndUser(
-//             @Valid @RequestBody CreateEndUserRequestDTO createEndUserRequestDTO,
-//             BindingResult bindingResult) {
+            if (endUser == null) {
+                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+                baseResponseDTO.setMessage("EndUser with identifier " + identifier + " not found");
+                baseResponseDTO.setTimestamp(new Date());
+                return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+            }
 
-//         var baseResponseDTO = new BaseResponseDTO<EndUserResponseDTO>();
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(endUser);
+            baseResponseDTO.setMessage("EndUser retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
 
-//         if (bindingResult.hasFieldErrors()) {
-//             StringBuilder errorMessages = new StringBuilder();
-//             List<FieldError> errors = bindingResult.getFieldErrors();
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve end user: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-//             for (FieldError error : errors) {
-//                 errorMessages.append(error.getDefaultMessage()).append("; ");
-//             }
+    @PostMapping(CREATE_END_USER)
+    public ResponseEntity<BaseResponseDTO<EndUserResponseDTO>> createEndUser(
+            @Valid @RequestBody CreateEndUserRequestDTO createEndUserRequestDTO,
+            BindingResult bindingResult) {
 
-//             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-//             baseResponseDTO.setMessage(errorMessages.toString());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-//         }
+        var baseResponseDTO = new BaseResponseDTO<EndUserResponseDTO>();
 
-//         try {
-//             EndUserResponseDTO endUser = endUserRestService.createEndUser(createEndUserRequestDTO);
+        if (bindingResult.hasFieldErrors()) {
+            StringBuilder errorMessages = new StringBuilder();
+            List<FieldError> errors = bindingResult.getFieldErrors();
 
-//             baseResponseDTO.setStatus(HttpStatus.CREATED.value());
-//             baseResponseDTO.setData(endUser);
-//             baseResponseDTO.setMessage("EndUser created successfully");
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.CREATED);
+            for (FieldError error : errors) {
+                errorMessages.append(error.getDefaultMessage()).append("; ");
+            }
 
-//         } catch (IllegalArgumentException e) {
-//             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-//             baseResponseDTO.setMessage(e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-//         } catch (Exception e) {
-//             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//             baseResponseDTO.setMessage("Failed to create end user: " + e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-//         }
-//     }
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage(errorMessages.toString());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
 
-//     // PUT /{id}/edit - Update EndUser
-//     @PutMapping(UPDATE_END_USER)
-//     public ResponseEntity<BaseResponseDTO<EndUserResponseDTO>> updateEndUser(
-//             @PathVariable UUID id,
-//             @Valid @RequestBody UpdateEndUserRequestDTO updateEndUserRequestDTO,
-//             BindingResult bindingResult) {
+        try {
+            EndUserResponseDTO endUser = endUserRestService.createEndUser(createEndUserRequestDTO);
 
-//         var baseResponseDTO = new BaseResponseDTO<EndUserResponseDTO>();
+            baseResponseDTO.setStatus(HttpStatus.CREATED.value());
+            baseResponseDTO.setData(endUser);
+            baseResponseDTO.setMessage("EndUser created successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.CREATED);
 
-//         if (bindingResult.hasFieldErrors()) {
-//             StringBuilder errorMessages = new StringBuilder();
-//             List<FieldError> errors = bindingResult.getFieldErrors();
+        } catch (IllegalArgumentException e) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage(e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to create end user: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-//             for (FieldError error : errors) {
-//                 errorMessages.append(error.getDefaultMessage()).append("; ");
-//             }
+    @PutMapping(UPDATE_END_USER)
+    public ResponseEntity<BaseResponseDTO<EndUserResponseDTO>> updateEndUser(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateEndUserRequestDTO updateEndUserRequestDTO,
+            BindingResult bindingResult) {
 
-//             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-//             baseResponseDTO.setMessage(errorMessages.toString());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-//         }
+        var baseResponseDTO = new BaseResponseDTO<EndUserResponseDTO>();
 
-//         try {
-//             // Set the ID from path parameter
-//             updateEndUserRequestDTO.setId(id);
+        if (bindingResult.hasFieldErrors()) {
+            StringBuilder errorMessages = new StringBuilder();
+            List<FieldError> errors = bindingResult.getFieldErrors();
 
-//             EndUserResponseDTO endUser = endUserRestService.updateEndUser(updateEndUserRequestDTO);
+            for (FieldError error : errors) {
+                errorMessages.append(error.getDefaultMessage()).append("; ");
+            }
 
-//             baseResponseDTO.setStatus(HttpStatus.OK.value());
-//             baseResponseDTO.setData(endUser);
-//             baseResponseDTO.setMessage("EndUser updated successfully");
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage(errorMessages.toString());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
 
-//         } catch (IllegalArgumentException e) {
-//             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-//             baseResponseDTO.setMessage(e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-//         } catch (RuntimeException e) {
-//             baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
-//             baseResponseDTO.setMessage(e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
-//         } catch (Exception e) {
-//             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//             baseResponseDTO.setMessage("Failed to update end user: " + e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-//         }
-//     }
+        try {
+            // Set the ID from path parameter
+            updateEndUserRequestDTO.setId(id);
 
-//     // DELETE /{id}/delete - Delete EndUser (Superadmin only)
-//     @DeleteMapping(DELETE_END_USER)
-//     public ResponseEntity<BaseResponseDTO<?>> deleteEndUser(
-//             @PathVariable UUID id) {
-        
-//         var baseResponseDTO = new BaseResponseDTO<>();
+            EndUserResponseDTO endUser = endUserRestService.updateEndUser(updateEndUserRequestDTO);
 
-//         try {
-//             endUserRestService.deleteEndUser(id);
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(endUser);
+            baseResponseDTO.setMessage("EndUser updated successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
 
-//             baseResponseDTO.setStatus(HttpStatus.OK.value());
-//             baseResponseDTO.setMessage("EndUser with id " + id + " deleted successfully");
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage(e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+            baseResponseDTO.setMessage(e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to update end user: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-//         } catch (IllegalArgumentException e) {
-//             baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
-//             baseResponseDTO.setMessage(e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
-//         } catch (Exception e) {
-//             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-//             baseResponseDTO.setMessage("Failed to delete end user with id " + id + ": " + e.getMessage());
-//             baseResponseDTO.setTimestamp(new Date());
-//             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
-//         }
-//     }
-// }
+    @DeleteMapping(DELETE_END_USER)
+    public ResponseEntity<BaseResponseDTO<?>> deleteEndUser(
+            @PathVariable UUID id) {
+
+        var baseResponseDTO = new BaseResponseDTO<>();
+
+        try {
+            endUserRestService.deleteEndUser(id);
+
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setMessage("EndUser with id " + id + " deleted successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+
+        } catch (IllegalArgumentException e) {
+            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+            baseResponseDTO.setMessage(e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to delete end user with id " + id + ": " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+}

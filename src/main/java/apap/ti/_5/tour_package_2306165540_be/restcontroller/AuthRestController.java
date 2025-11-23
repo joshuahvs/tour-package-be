@@ -9,7 +9,6 @@ import apap.ti._5.tour_package_2306165540_be.restdto.response.LoginResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.ProfileRestService;
 import apap.ti._5.tour_package_2306165540_be.security.jwt.JwtUtils;
 import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,12 +22,17 @@ import java.util.Date;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 public class AuthRestController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
     private final ProfileRestService profileRestService;
+
+    public AuthRestController(AuthenticationManager authenticationManager, JwtUtils jwtUtils, ProfileRestService profileRestService){
+        this.authenticationManager = authenticationManager;
+        this.jwtUtils = jwtUtils;
+        this.profileRestService = profileRestService;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<BaseResponseDTO<LoginResponseDTO>> login(@RequestBody LoginRequestDTO requestDTO) {

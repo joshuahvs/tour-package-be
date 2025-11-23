@@ -3,7 +3,6 @@ package apap.ti._5.tour_package_2306165540_be.restcontroller;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.RevenueStatisticsResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.StatisticsRestService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
