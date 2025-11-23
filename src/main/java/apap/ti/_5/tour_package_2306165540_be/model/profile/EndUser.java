@@ -40,8 +40,8 @@ public abstract class EndUser {
     @Column(name = "full_name", nullable = false, length = 160)
     private String fullName;
 
-    @Column(name = "phone_number", length = 30)
-    private String phoneNumber;
+    // Align with existing DB column name 'phone' (was 'phone_number') and allow
+    // nullable
 
     @Column(name = "password_hash", length = 255)
     private String password;

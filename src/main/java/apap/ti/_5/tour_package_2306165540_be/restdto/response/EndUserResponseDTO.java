@@ -18,6 +18,7 @@ public class EndUserResponseDTO {
     private boolean active;
     private String organizationName;
     private String notes;
+    private Long saldo; // default 0 for all, meaningful for CUSTOMER
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

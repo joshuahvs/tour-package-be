@@ -122,7 +122,9 @@ public class DataLoader implements CommandLineRunner {
             // Update existing user with new password
             existingUser.setEmail(email);
             existingUser.setFullName(fullName);
-            existingUser.setPhoneNumber(phone);
+            if (existingUser instanceof RentalVendor rv) {
+                rv.setPhone(phone);
+            }
             if (password != null) {
                 existingUser.setPassword(passwordEncoder.encode(password));
             }
@@ -144,7 +146,9 @@ public class DataLoader implements CommandLineRunner {
         user.setUsername(username);
         user.setEmail(email);
         user.setFullName(fullName);
-        user.setPhoneNumber(phone);
+        if (user instanceof RentalVendor rv) {
+            rv.setPhone(phone);
+        }
         if (password != null) {
             user.setPassword(passwordEncoder.encode(password));
         }

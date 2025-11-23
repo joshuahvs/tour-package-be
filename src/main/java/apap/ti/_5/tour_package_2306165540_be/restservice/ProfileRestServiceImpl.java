@@ -126,7 +126,9 @@ public class ProfileRestServiceImpl implements ProfileRestService {
         target.setUsername(requestDTO.getUsername().trim());
         target.setEmail(requestDTO.getEmail().trim());
         target.setFullName(requestDTO.getFullName().trim());
-        target.setPhoneNumber(trimToNull(requestDTO.getPhoneNumber()));
+        if (target instanceof RentalVendor rv) {
+            rv.setPhone(trimToNull(requestDTO.getPhoneNumber()));
+        }
         boolean hasNewPassword = !isBlank(requestDTO.getPassword());
         if (hasNewPassword) {
             target.setPassword(passwordEncoder.encode(requestDTO.getPassword().trim()));
@@ -159,7 +161,9 @@ public class ProfileRestServiceImpl implements ProfileRestService {
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setFullName(user.getFullName());
-        dto.setPhoneNumber(user.getPhoneNumber());
+        if (user instanceof RentalVendor rv) {
+            dto.setPhoneNumber(rv.getPhone());
+        }
         dto.setRole(user.getRoleType().name());
         dto.setRoleDisplayName(user.getRoleType().getDisplayName());
         dto.setResponsibility(user.getRoleType().getResponsibility());

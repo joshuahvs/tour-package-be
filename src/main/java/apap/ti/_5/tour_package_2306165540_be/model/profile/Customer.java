@@ -16,6 +16,9 @@ public class Customer extends EndUser {
         return RoleType.CUSTOMER;
     }
 
-    @Column(name = "saldo", nullable = false)
+    // Saldo hanya untuk Customer; kolom harus nullable agar baris non-CUSTOMER
+    // tidak gagal
+    @Column(name = "saldo")
     private Long saldo = 0L;
+
 }

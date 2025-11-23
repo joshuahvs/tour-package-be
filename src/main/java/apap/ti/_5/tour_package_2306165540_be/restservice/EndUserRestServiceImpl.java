@@ -86,7 +86,7 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         EndUser entity = instantiateRole(targetRole);
         entity.setId(UUID.randomUUID());
         applyCommonFields(entity, requestDTO.getUsername(), requestDTO.getEmail(), requestDTO.getFullName(),
-                requestDTO.getPhoneNumber(), requestDTO.getOrganizationName(), requestDTO.getNotes());
+                requestDTO.getOrganizationName(), requestDTO.getNotes());
         entity.setPassword(passwordEncoder.encode(requestDTO.getPassword().trim()));
         entity.setActive(requestDTO.getActive() == null || requestDTO.getActive());
         entity.setCreatedAt(LocalDateTime.now());
@@ -126,9 +126,9 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         if (hasText(requestDTO.getFullName())) {
             existing.setFullName(requestDTO.getFullName().trim());
         }
-        if (requestDTO.getPhoneNumber() != null) {
+        if (existing instanceof RentalVendor rv && requestDTO.getPhoneNumber() != null) {
             String phoneNumber = requestDTO.getPhoneNumber().trim();
-            existing.setPhoneNumber(phoneNumber.isEmpty() ? null : phoneNumber);
+            rv.setPhone(phoneNumber.isEmpty() ? null : phoneNumber);
         }
         if (hasText(requestDTO.getPassword())) {
             existing.setPassword(passwordEncoder.encode(requestDTO.getPassword().trim()));
@@ -189,12 +189,11 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         }
     }
 
-    private void applyCommonFields(EndUser user, String username, String email, String fullName, String phoneNumber,
+    private void applyCommonFields(EndUser user, String username, String email, String fullName,
             String organizationName, String notes) {
         user.setUsername(username.trim());
         user.setEmail(email.trim());
         user.setFullName(fullName.trim());
-        user.setPhoneNumber(trimToNull(phoneNumber));
         user.setOrganizationName(trimToNull(organizationName));
         user.setNotes(trimToNull(notes));
     }
@@ -205,7 +204,9 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setFullName(user.getFullName());
-        dto.setPhoneNumber(user.getPhoneNumber());
+        if (user instanceof RentalVendor rv) {
+            dto.setPhoneNumber(rv.getPhone());
+        }
         dto.setRole(user.getRoleType().name());
         dto.setRoleDisplayName(user.getRoleType().getDisplayName());
         dto.setResponsibility(user.getRoleType().getResponsibility());
@@ -214,6 +215,9 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         dto.setNotes(user.getNotes());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setUpdatedAt(user.getUpdatedAt());
+        if (user instanceof Customer customer) {
+            dto.setSaldo(customer.getSaldo());
+        }
         return dto;
     }
 
@@ -223,7 +227,7 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         dto.setUsername(customer.getUsername());
         dto.setEmail(customer.getEmail());
         dto.setFullName(customer.getFullName());
-        dto.setPhoneNumber(customer.getPhoneNumber());
+        // Customers do not have phone attribute
         dto.setActive(customer.isActive());
         dto.setSaldo(customer.getSaldo());
         dto.setCreatedAt(customer.getCreatedAt());
