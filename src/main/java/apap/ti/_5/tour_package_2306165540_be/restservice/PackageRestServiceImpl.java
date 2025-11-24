@@ -2,13 +2,17 @@ package apap.ti._5.tour_package_2306165540_be.restservice;
 
 import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
+import apap.ti._5.tour_package_2306165540_be.model.profile.EndUser;
+import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
+import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePackageRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
-import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +26,13 @@ public class PackageRestServiceImpl implements PackageRestService {
 
     private final PackageRepository packageRepository;
     private final PlanRepository planRepository;
+    private final EndUserRepository endUserRepository;
 
-    public PackageRestServiceImpl(PackageRepository packageRepository, PlanRepository planRepository){
+    public PackageRestServiceImpl(PackageRepository packageRepository, PlanRepository planRepository,
+            EndUserRepository endUserRepository) {
         this.packageRepository = packageRepository;
         this.planRepository = planRepository;
+        this.endUserRepository = endUserRepository;
     }
 
     @Override
@@ -33,6 +40,7 @@ public class PackageRestServiceImpl implements PackageRestService {
         List<Package> packages = packageRepository.findAll();
         return packages.stream()
                 .filter(pkg -> !"DELETED".equalsIgnoreCase(pkg.getStatus())) // Filter out deleted packages
+                .filter(this::isPackageVisibleToCurrentUser) // Filter based on user role
                 .map(pkg -> toResponseDTO(pkg))
                 .collect(Collectors.toList());
     }
@@ -45,6 +53,7 @@ public class PackageRestServiceImpl implements PackageRestService {
         return packages.stream()
                 .filter(pkg -> !"DELETED".equalsIgnoreCase(pkg.getStatus())) // Filter out deleted packages
                 .filter(pkg -> pkg.getPackageName().toLowerCase().contains(name.toLowerCase()))
+                .filter(this::isPackageVisibleToCurrentUser) // Filter based on user role
                 .map(pkg -> toResponseDTO(pkg))
                 .collect(Collectors.toList());
     }
@@ -228,6 +237,55 @@ public class PackageRestServiceImpl implements PackageRestService {
 
         packageEntity.setStatus("DELETED");
         packageRepository.save(packageEntity);
+    }
+
+    // Helper methods
+    /**
+     * Mengecek apakah package visible untuk user yang sedang login.
+     * Customer hanya bisa melihat package yang dibuat oleh vendor/admin dan package
+     * miliknya sendiri.
+     * Vendor/Admin/Superadmin bisa melihat semua package.
+     */
+    private boolean isPackageVisibleToCurrentUser(Package pkg) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return true; // Allow if no authentication (shouldn't happen with security)
+        }
+
+        String currentUsername = authentication.getName();
+        EndUser currentUser = endUserRepository.findByUsernameIgnoreCase(currentUsername)
+                .orElse(null);
+
+        if (currentUser == null) {
+            return true; // Allow if user not found
+        }
+
+        // Jika bukan Customer, bisa lihat semua package
+        if (currentUser.getRoleType() != RoleType.CUSTOMER) {
+            return true;
+        }
+
+        // Jika Customer, cek apakah package dibuat oleh dirinya sendiri
+        if (pkg.getUserId().equals(currentUser.getId().toString())) {
+            return true; // Package milik sendiri
+        }
+
+        // Cek apakah package dibuat oleh vendor/admin (bukan Customer lain)
+        try {
+            java.util.UUID creatorId = java.util.UUID.fromString(pkg.getUserId());
+            EndUser packageCreator = endUserRepository.findById(creatorId).orElse(null);
+
+            if (packageCreator == null) {
+                return false; // Creator tidak ditemukan
+            }
+
+            // Allow jika creator bukan Customer (berarti vendor/admin)
+            return packageCreator.getRoleType() != RoleType.CUSTOMER;
+        } catch (IllegalArgumentException e) {
+            // userId bukan format UUID, tidak bisa validasi creator
+            // Default: hide package dari Customer untuk safety
+            return false;
+        }
     }
 
     // Mapper methods
