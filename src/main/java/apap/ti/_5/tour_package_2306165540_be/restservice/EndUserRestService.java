@@ -4,6 +4,7 @@ import apap.ti._5.tour_package_2306165540_be.restdto.request.CreateEndUserReques
 import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateEndUserRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.CustomerResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.EndUserResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.UserProfileResponseDTO;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +17,8 @@ public interface EndUserRestService {
     List<CustomerResponseDTO> searchCustomers(String name, String email);
 
     EndUserResponseDTO getEndUserByIdOrUsernameOrEmail(String identifier);
+
+    UserProfileResponseDTO getUserProfile(String identifier);
 
     EndUserResponseDTO createEndUser(CreateEndUserRequestDTO requestDTO);
 

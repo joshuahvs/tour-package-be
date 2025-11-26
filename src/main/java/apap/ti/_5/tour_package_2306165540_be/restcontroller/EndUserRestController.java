@@ -2,36 +2,54 @@ package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
+import apap.ti._5.tour_package_2306165540_be.model.profile.AccommodationOwner;
+import apap.ti._5.tour_package_2306165540_be.model.profile.Customer;
+import apap.ti._5.tour_package_2306165540_be.model.profile.EndUser;
+import apap.ti._5.tour_package_2306165540_be.model.profile.FlightAirline;
+import apap.ti._5.tour_package_2306165540_be.model.profile.RentalVendor;
+import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
+import apap.ti._5.tour_package_2306165540_be.model.profile.SuperAdmin;
+import apap.ti._5.tour_package_2306165540_be.model.profile.TourPackageVendor;
+import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreateEndUserRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateEndUserRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.CustomerResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.EndUserResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.UserManagementResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.UserProfileResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.EndUserRestService;
 import jakarta.validation.Valid;
 
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/end-users")
 public class EndUserRestController {
 
     private final EndUserRestService endUserRestService;
+    private final EndUserRepository endUserRepository;
 
-    public EndUserRestController(EndUserRestService endUserRestService) {
+    public EndUserRestController(EndUserRestService endUserRestService, EndUserRepository endUserRepository) {
         this.endUserRestService = endUserRestService;
+        this.endUserRepository = endUserRepository;
     }
 
     public static final String GET_ALL_END_USERS = "";
     public static final String GET_END_USERS_BY_ROLE = "/role/{roleType}";
     public static final String GET_ALL_CUSTOMERS = "/customers";
     public static final String GET_END_USER_DETAIL = "/{identifier}";
+    public static final String GET_USER_PROFILE = "/profile/{identifier}";
+    public static final String GET_MY_PROFILE = "/profile";
     public static final String CREATE_END_USER = "/create";
     public static final String UPDATE_END_USER = "/{id}/edit";
     public static final String DELETE_END_USER = "/{id}/delete";
@@ -133,6 +151,65 @@ public class EndUserRestController {
         } catch (Exception e) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("Failed to retrieve end user: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping(GET_MY_PROFILE)
+    public ResponseEntity<BaseResponseDTO<UserProfileResponseDTO>> getMyProfile() {
+        var baseResponseDTO = new BaseResponseDTO<UserProfileResponseDTO>();
+
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+
+            UserProfileResponseDTO profile = endUserRestService.getUserProfile(username);
+
+            if (profile == null) {
+                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+                baseResponseDTO.setMessage("User not found");
+                baseResponseDTO.setTimestamp(new Date());
+                return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+            }
+
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(profile);
+            baseResponseDTO.setMessage("User profile retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve user profile: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping(GET_USER_PROFILE)
+    public ResponseEntity<BaseResponseDTO<UserProfileResponseDTO>> getUserProfile(@PathVariable String identifier) {
+        var baseResponseDTO = new BaseResponseDTO<UserProfileResponseDTO>();
+
+        try {
+            UserProfileResponseDTO profile = endUserRestService.getUserProfile(identifier);
+
+            if (profile == null) {
+                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+                baseResponseDTO.setMessage("User not found");
+                baseResponseDTO.setTimestamp(new Date());
+                return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+            }
+
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(profile);
+            baseResponseDTO.setMessage("User profile retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve user profile: " + e.getMessage());
             baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -258,5 +335,133 @@ public class EndUserRestController {
             baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // New endpoints for User Management frontend (accessible at /api/users)
+    @GetMapping("/users")
+    public ResponseEntity<BaseResponseDTO<List<UserManagementResponseDTO>>> getUsersForManagement(
+            @RequestParam(required = false) String role) {
+
+        var baseResponseDTO = new BaseResponseDTO<List<UserManagementResponseDTO>>();
+
+        try {
+            // Check authorization - only SUPERADMIN can access
+            if (!isSuperAdmin()) {
+                baseResponseDTO.setStatus(HttpStatus.FORBIDDEN.value());
+                baseResponseDTO.setMessage("You are not authorized to view this page.");
+                baseResponseDTO.setTimestamp(new Date());
+                return new ResponseEntity<>(baseResponseDTO, HttpStatus.FORBIDDEN);
+            }
+
+            List<EndUser> users;
+
+            if (role != null && !role.isBlank()) {
+                // Filter by role - map RoleType to Class type
+                Class<? extends EndUser> roleClass = getRoleClass(role.toUpperCase());
+                if (roleClass == null) {
+                    baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+                    baseResponseDTO.setMessage("Invalid role type: " + role);
+                    baseResponseDTO.setTimestamp(new Date());
+                    return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+                }
+                users = endUserRepository.findByRoleType(roleClass);
+            } else {
+                // Get all users
+                users = endUserRepository.findAll();
+            }
+
+            List<UserManagementResponseDTO> userDTOs = users.stream()
+                    .map(this::convertToUserManagementDTO)
+                    .collect(Collectors.toList());
+
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(userDTOs);
+            baseResponseDTO.setMessage("Users retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve users: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/users/{id}")
+    public ResponseEntity<BaseResponseDTO<UserManagementResponseDTO>> getUserByIdForManagement(
+            @PathVariable String id) {
+
+        var baseResponseDTO = new BaseResponseDTO<UserManagementResponseDTO>();
+
+        try {
+            // Check authorization - only SUPERADMIN can access
+            if (!isSuperAdmin()) {
+                baseResponseDTO.setStatus(HttpStatus.FORBIDDEN.value());
+                baseResponseDTO.setMessage("You are not authorized to view this page.");
+                baseResponseDTO.setTimestamp(new Date());
+                return new ResponseEntity<>(baseResponseDTO, HttpStatus.FORBIDDEN);
+            }
+
+            EndUser user = endUserRepository.findById(UUID.fromString(id))
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+            UserManagementResponseDTO userDTO = convertToUserManagementDTO(user);
+
+            baseResponseDTO.setStatus(HttpStatus.OK.value());
+            baseResponseDTO.setData(userDTO);
+            baseResponseDTO.setMessage("User retrieved successfully");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+
+        } catch (RuntimeException e) {
+            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+            baseResponseDTO.setMessage(e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            baseResponseDTO.setMessage("Failed to retrieve user: " + e.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private boolean isSuperAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return false;
+        }
+
+        String currentUsername = authentication.getName();
+        EndUser currentUser = endUserRepository.findByUsernameIgnoreCase(currentUsername)
+                .orElse(null);
+
+        return currentUser != null && currentUser.getRoleType() == RoleType.SUPERADMIN;
+    }
+
+    private Class<? extends EndUser> getRoleClass(String roleType) {
+        return switch (roleType) {
+            case "SUPERADMIN" -> SuperAdmin.class;
+            case "TOUR_PACKAGE_VENDOR" -> TourPackageVendor.class;
+            case "FLIGHT_AIRLINE" -> FlightAirline.class;
+            case "ACCOMMODATION_OWNER" -> AccommodationOwner.class;
+            case "RENTAL_VENDOR" -> RentalVendor.class;
+            case "CUSTOMER" -> Customer.class;
+            default -> null;
+        };
+    }
+
+    private UserManagementResponseDTO convertToUserManagementDTO(EndUser user) {
+        UserManagementResponseDTO dto = new UserManagementResponseDTO();
+        dto.setId(user.getId().toString());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setFullName(user.getFullName());
+        dto.setOrganizationName(user.getOrganizationName());
+        dto.setNotes(user.getNotes());
+        dto.setRoleType(user.getRoleType().name());
+        dto.setActive(user.isActive());
+        return dto;
     }
 }

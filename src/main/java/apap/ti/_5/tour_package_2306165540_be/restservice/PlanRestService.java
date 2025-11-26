@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PlanRestService {
+    List<PlanResponseDTO> getAllPlansByPackage(String packageId);
+
     PlanResponseDTO createPlan(String packageId, CreatePlanRequestDTO requestDTO);
 
     PlanDetailResponseDTO getPlanDetail(UUID planId);

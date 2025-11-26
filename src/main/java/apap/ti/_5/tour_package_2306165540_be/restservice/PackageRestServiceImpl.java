@@ -16,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -74,13 +75,30 @@ public class PackageRestServiceImpl implements PackageRestService {
 
     @Override
     public PackageResponseDTO createPackage(CreatePackageRequestDTO requestDTO) {
-        // Validate end date is after start date
-        if (requestDTO.getEndDate().isBefore(requestDTO.getStartDate())) {
+        // Validate quota > 0
+        if (requestDTO.getQuota() <= 0) {
+            throw new RuntimeException("Quota must be greater than 0");
+        }
+
+        // Validate price > 0 (if provided)
+        if (requestDTO.getPrice() != null && requestDTO.getPrice() <= 0) {
+            throw new RuntimeException("Price must be greater than 0");
+        }
+
+        // Validate startDate >= now
+        LocalDateTime now = LocalDateTime.now();
+        if (requestDTO.getStartDate().isBefore(now)) {
+            throw new RuntimeException("Start date must be in the future or today");
+        }
+
+        // Validate startDate < endDate
+        if (requestDTO.getEndDate().isBefore(requestDTO.getStartDate()) ||
+                requestDTO.getEndDate().isEqual(requestDTO.getStartDate())) {
             throw new RuntimeException("End date must be after start date");
         }
 
-        // Generate package ID
-        String packageId = generatePackageId(requestDTO.getUserId());
+        // Generate package ID with format PKG-{YYYYMMDD}-{XXX}
+        String packageId = generatePackageId();
 
         Package packageEntity = toEntity(requestDTO);
         packageEntity.setId(packageId);
@@ -91,16 +109,22 @@ public class PackageRestServiceImpl implements PackageRestService {
         return toResponseDTO(savedPackage);
     }
 
-    private String generatePackageId(String userId) {
-        // Get count of packages for this user
-        List<Package> userPackages = packageRepository.findAll().stream()
-                .filter(pkg -> pkg.getUserId().equals(userId))
-                .collect(Collectors.toList());
+    private String generatePackageId() {
+        // Format: PKG-{YYYYMMDD}-{XXX}
+        LocalDateTime now = LocalDateTime.now();
+        String dateStr = String.format("%04d%02d%02d",
+                now.getYear(), now.getMonthValue(), now.getDayOfMonth());
 
-        int count = userPackages.size() + 1;
+        // Get count of packages created today
+        String datePrefix = "PKG-" + dateStr + "-";
+        long todayCount = packageRepository.findAll().stream()
+                .filter(pkg -> pkg.getId().startsWith(datePrefix))
+                .count();
+
+        int count = (int) todayCount + 1;
         String countStr = String.format("%03d", count);
 
-        return "PACK-" + userId + "-" + countStr;
+        return datePrefix + countStr;
     }
 
     @Override
@@ -108,27 +132,50 @@ public class PackageRestServiceImpl implements PackageRestService {
         Package existingPackage = packageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
 
-        // Validate: Only allow edit if status is PENDING
-        if (!"PENDING".equalsIgnoreCase(existingPackage.getStatus())) {
-            throw new RuntimeException("Cannot edit package. Only packages with status 'PENDING' can be edited.");
+        // Authorization check: Customer only can update their own packages
+        // Superadmin and Vendor can update all packages
+        if (!canUserEditOrDeletePackage(existingPackage)) {
+            throw new RuntimeException("You do not have permission to update this package");
         }
 
-        // Validate: Only allow edit if package doesn't have any plans
-        if (existingPackage.getPlans() != null && !existingPackage.getPlans().isEmpty()) {
-            throw new RuntimeException("Cannot edit package. Package with existing plans cannot be edited.");
+        // Validate: Only allow edit if status is PENDING or PROCESSED
+        if (!"PENDING".equalsIgnoreCase(existingPackage.getStatus()) &&
+                !"PROCESSED".equalsIgnoreCase(existingPackage.getStatus())) {
+            throw new RuntimeException(
+                    "Cannot edit package. Only packages with status 'PENDING' or 'PROCESSED' can be edited.");
         }
 
-        // Validate: End date must be after start date
-        if (requestDTO.getEndDate().isBefore(requestDTO.getStartDate())) {
+        // Validate quota > 0
+        if (requestDTO.getQuota() <= 0) {
+            throw new RuntimeException("Quota must be greater than 0");
+        }
+
+        // Validate startDate >= now
+        LocalDateTime now = LocalDateTime.now();
+        if (requestDTO.getStartDate().isBefore(now)) {
+            throw new RuntimeException("Start date must be in the future or today");
+        }
+
+        // Validate startDate < endDate
+        if (requestDTO.getEndDate().isBefore(requestDTO.getStartDate()) ||
+                requestDTO.getEndDate().isEqual(requestDTO.getStartDate())) {
             throw new RuntimeException("End date must be after start date");
         }
 
-        // Update package fields (userId cannot be changed to maintain package ID
-        // format)
+        // Validate: Package with status PROCESSED cannot change activityIdList
+        // This is checked by not allowing plan modifications when status is PROCESSED
+        if ("PROCESSED".equalsIgnoreCase(existingPackage.getStatus())) {
+            // For PROCESSED packages, only allow editing packageName, startDate, endDate,
+            // quota
+            // activityIdList changes are not allowed (handled via Plan management)
+        }
+
+        // Update package fields (userId and status cannot be changed)
         existingPackage.setPackageName(requestDTO.getPackageName());
         existingPackage.setQuota(requestDTO.getQuota());
         existingPackage.setStartDate(requestDTO.getStartDate());
         existingPackage.setEndDate(requestDTO.getEndDate());
+        // Price is calculated automatically, not updated manually
 
         Package updatedPackage = packageRepository.save(existingPackage);
         return toResponseDTO(updatedPackage);
@@ -221,10 +268,17 @@ public class PackageRestServiceImpl implements PackageRestService {
         Package packageEntity = packageRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
 
-        if (!"PENDING".equalsIgnoreCase(packageEntity.getStatus())) {
-            throw new RuntimeException("Cannot delete package. Only packages with status 'PENDING' can be deleted.");
+        // Authorization check: Customer only can delete their own packages
+        // Superadmin and Vendor can delete all packages
+        if (!canUserEditOrDeletePackage(packageEntity)) {
+            throw new RuntimeException("You do not have permission to delete this package");
         }
 
+        if (!"PENDING".equalsIgnoreCase(packageEntity.getStatus())) {
+            throw new RuntimeException("Only packages with status 'PENDING' can be deleted.");
+        }
+
+        // Cascade delete: Remove all Plans and OrderedActivities
         List<Plan> plansToDelete = new ArrayList<>(packageEntity.getPlans());
 
         packageEntity.getPlans().clear();
@@ -235,11 +289,45 @@ public class PackageRestServiceImpl implements PackageRestService {
             planRepository.deleteAll(plansToDelete);
         }
 
+        // Soft delete: Set status to DELETED
         packageEntity.setStatus("DELETED");
         packageRepository.save(packageEntity);
     }
 
     // Helper methods
+    /**
+     * Mengecek apakah user dapat edit atau delete package.
+     * Customer hanya bisa edit/delete package milik sendiri.
+     * Superadmin dan Vendor Tour Package dapat edit/delete semua package.
+     */
+    private boolean canUserEditOrDeletePackage(Package pkg) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return false; // Deny if no authentication
+        }
+
+        String currentUsername = authentication.getName();
+        EndUser currentUser = endUserRepository.findByUsernameIgnoreCase(currentUsername)
+                .orElse(null);
+
+        if (currentUser == null) {
+            return false; // Deny if user not found
+        }
+
+        // Superadmin and Vendor can edit/delete all packages
+        if (currentUser.getRoleType() == RoleType.SUPERADMIN ||
+                currentUser.getRoleType() == RoleType.TOUR_PACKAGE_VENDOR) {
+            return true;
+        }
+
+        // Customer can only edit/delete their own packages
+        if (currentUser.getRoleType() == RoleType.CUSTOMER) {
+            return pkg.getUserId().equals(currentUser.getId().toString());
+        }
+
+        return false;
+    }
+
     /**
      * Mengecek apakah package visible untuk user yang sedang login.
      * Customer hanya bisa melihat package yang dibuat oleh vendor/admin dan package

@@ -56,8 +56,19 @@ public class DataLoader implements CommandLineRunner {
             return;
         }
 
+        // Get vendor user IDs for activity creators
+        String flightAirlineId = endUserRepository.findByUsernameIgnoreCase("flightairline")
+                .orElseThrow(() -> new RuntimeException("FlightAirline user not found"))
+                .getId().toString();
+        String accommodationOwnerId = endUserRepository.findByUsernameIgnoreCase("accommodationowner")
+                .orElseThrow(() -> new RuntimeException("AccommodationOwner user not found"))
+                .getId().toString();
+        String rentalVendorId = endUserRepository.findByUsernameIgnoreCase("rentalvendor")
+                .orElseThrow(() -> new RuntimeException("RentalVendor user not found"))
+                .getId().toString();
+
         // Create Activities
-        List<Activity> activities = createActivities(baseTime);
+        List<Activity> activities = createActivities(baseTime, flightAirlineId, accommodationOwnerId, rentalVendorId);
         activityRepository.saveAll(activities);
 
         // Create Packages
@@ -160,7 +171,8 @@ public class DataLoader implements CommandLineRunner {
         return user;
     }
 
-    private List<Activity> createActivities(LocalDateTime baseTime) {
+    private List<Activity> createActivities(LocalDateTime baseTime, String flightAirlineId,
+            String accommodationOwnerId, String rentalVendorId) {
         LocalDateTime now = baseTime;
         List<Activity> activities = new ArrayList<>();
 
@@ -173,6 +185,7 @@ public class DataLoader implements CommandLineRunner {
         activity1.setCapacity(180);
         activity1.setPrice(800000L);
         activity1.setActivityType("Flight");
+        activity1.setCreatorId(flightAirlineId);
         activity1.setStartDate(now.plusDays(5));
         activity1.setEndDate(now.plusDays(5).plusHours(2));
         activity1.setStartLocation("Soekarno-Hatta Airport");
@@ -185,6 +198,7 @@ public class DataLoader implements CommandLineRunner {
         activity2.setCapacity(50);
         activity2.setPrice(350000L);
         activity2.setActivityType("Accommodation");
+        activity2.setCreatorId(accommodationOwnerId);
         activity2.setStartDate(now.plusDays(3));
         activity2.setEndDate(now.plusDays(3).plusHours(24));
         activity2.setStartLocation("Downtown Hotel");
@@ -197,6 +211,7 @@ public class DataLoader implements CommandLineRunner {
         activity3.setCapacity(20);
         activity3.setPrice(750000L);
         activity3.setActivityType("Vehicle Rental");
+        activity3.setCreatorId(rentalVendorId);
         activity3.setStartDate(now.plusDays(7));
         activity3.setEndDate(now.plusDays(7).plusHours(8));
         activity3.setStartLocation("Jakarta Downtown");
@@ -209,6 +224,7 @@ public class DataLoader implements CommandLineRunner {
         activity4.setCapacity(15);
         activity4.setPrice(450000L);
         activity4.setActivityType("Accommodation");
+        activity4.setCreatorId(accommodationOwnerId);
         activity4.setStartDate(now.plusDays(4));
         activity4.setEndDate(now.plusDays(4).plusHours(24));
         activity4.setStartLocation("Ubud Resort");
@@ -221,6 +237,7 @@ public class DataLoader implements CommandLineRunner {
         activity5.setCapacity(25);
         activity5.setPrice(600000L);
         activity5.setActivityType("Vehicle Rental");
+        activity5.setCreatorId(rentalVendorId);
         activity5.setStartDate(now.plusDays(6));
         activity5.setEndDate(now.plusDays(6).plusHours(3));
         activity5.setStartLocation("Kuta City Center");
@@ -233,6 +250,7 @@ public class DataLoader implements CommandLineRunner {
         activity6.setCapacity(20);
         activity6.setPrice(1500000L);
         activity6.setActivityType("Flight");
+        activity6.setCreatorId(flightAirlineId);
         activity6.setStartDate(now.plusDays(2));
         activity6.setEndDate(now.plusDays(2).plusHours(2));
         activity6.setStartLocation("Soekarno-Hatta Airport");
@@ -245,6 +263,7 @@ public class DataLoader implements CommandLineRunner {
         activity7.setCapacity(150);
         activity7.setPrice(1200000L);
         activity7.setActivityType("Flight");
+        activity7.setCreatorId(flightAirlineId);
         activity7.setStartDate(now.plusDays(6));
         activity7.setEndDate(now.plusDays(6).plusHours(2));
         activity7.setStartLocation("Soekarno-Hatta Airport");
@@ -257,6 +276,7 @@ public class DataLoader implements CommandLineRunner {
         activity8.setCapacity(80);
         activity8.setPrice(650000L);
         activity8.setActivityType("Accommodation");
+        activity8.setCreatorId(accommodationOwnerId);
         activity8.setStartDate(now.plusDays(7));
         activity8.setEndDate(now.plusDays(7).plusHours(24));
         activity8.setStartLocation("Seminyak Resort");
@@ -269,6 +289,7 @@ public class DataLoader implements CommandLineRunner {
         activity9.setCapacity(40);
         activity9.setPrice(900000L);
         activity9.setActivityType("Vehicle Rental");
+        activity9.setCreatorId(rentalVendorId);
         activity9.setStartDate(now.plusDays(11));
         activity9.setEndDate(now.plusDays(11).plusHours(8));
         activity9.setStartLocation("Labuan Bajo Center");
@@ -281,6 +302,7 @@ public class DataLoader implements CommandLineRunner {
         activity10.setCapacity(70);
         activity10.setPrice(950000L);
         activity10.setActivityType("Accommodation");
+        activity10.setCreatorId(accommodationOwnerId);
         activity10.setStartDate(now.plusDays(15));
         activity10.setEndDate(now.plusDays(15).plusHours(48));
         activity10.setStartLocation("Nusa Dua Resort");
@@ -291,12 +313,13 @@ public class DataLoader implements CommandLineRunner {
                 activity7, activity8, activity9, activity10));
 
         // Generate many more activities using JavaFaker
-        activities.addAll(generateFakerActivities(10, baseTime));
+        activities.addAll(generateFakerActivities(10, baseTime, flightAirlineId, accommodationOwnerId, rentalVendorId));
 
         return activities;
     }
 
-    private List<Activity> generateFakerActivities(int existingCount, LocalDateTime baseTime) {
+    private List<Activity> generateFakerActivities(int existingCount, LocalDateTime baseTime,
+            String flightAirlineId, String accommodationOwnerId, String rentalVendorId) {
         // Start numbering after the existing fixed activities
         int nextIndex = existingCount + 1;
         final int perType = FAKER_PER_ACTIVITY_TYPE;
@@ -328,6 +351,7 @@ public class DataLoader implements CommandLineRunner {
             a.setCapacity(randBetween(100, 250));
             a.setPrice((long) randBetween(500_000, 3_000_000));
             a.setActivityType("Flight");
+            a.setCreatorId(flightAirlineId);
             a.setStartDate(start);
             a.setEndDate(end);
             a.setStartLocation(origin);
@@ -349,6 +373,7 @@ public class DataLoader implements CommandLineRunner {
             a.setCapacity(randBetween(10, 100));
             a.setPrice((long) randBetween(200_000, 2_000_000));
             a.setActivityType("Accommodation");
+            a.setCreatorId(accommodationOwnerId);
             a.setStartDate(start);
             a.setEndDate(end);
             a.setStartLocation(city);
@@ -371,6 +396,7 @@ public class DataLoader implements CommandLineRunner {
             a.setCapacity(randBetween(10, 50));
             a.setPrice((long) randBetween(300_000, 1_000_000));
             a.setActivityType("Vehicle Rental");
+            a.setCreatorId(rentalVendorId);
             a.setStartDate(start);
             a.setEndDate(end);
             a.setStartLocation(city);

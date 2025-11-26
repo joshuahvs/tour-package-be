@@ -1,4 +1,4 @@
-package apap.ti._5.tour_package_2306165540_be.restdto.response;
+package apap.ti._5.tour_package_2306165540_be.restdto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,17 +9,14 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ActivityResponseDTO {
-    private String id;
+public class CreateActivityRequestDTO {
     private String activityName;
     private String activityItem;
     private int capacity;
     private Long price;
     private String activityType;
-    private String creatorId;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String startLocation;
     private String endLocation;
-    private Boolean isDeleted;
 }

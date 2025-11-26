@@ -3,6 +3,9 @@ package apap.ti._5.tour_package_2306165540_be.restservice;
 import apap.ti._5.tour_package_2306165540_be.model.OrderedQuantity;
 import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
+import apap.ti._5.tour_package_2306165540_be.model.profile.EndUser;
+import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
+import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.OrderedQuantityRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
@@ -13,6 +16,8 @@ import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateOrderedQuanti
 import apap.ti._5.tour_package_2306165540_be.restdto.response.OrderedQuantityResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,16 +33,75 @@ public class PlanRestServiceImpl implements PlanRestService {
     private final PlanRepository planRepository;
     private final PackageRepository packageRepository;
     private final OrderedQuantityRepository orderedQuantityRepository;
+    private final EndUserRepository endUserRepository;
 
-
-    public PlanRestServiceImpl(PlanRepository planRepository, PackageRepository packageRepository, OrderedQuantityRepository orderedQuantityRepository){
+    public PlanRestServiceImpl(PlanRepository planRepository, PackageRepository packageRepository,
+            OrderedQuantityRepository orderedQuantityRepository, EndUserRepository endUserRepository) {
         this.planRepository = planRepository;
         this.packageRepository = packageRepository;
         this.orderedQuantityRepository = orderedQuantityRepository;
+        this.endUserRepository = endUserRepository;
+    }
+
+    @Override
+    public List<PlanResponseDTO> getAllPlansByPackage(String packageId) {
+        // Get the package
+        Package packageEntity = packageRepository.findById(packageId)
+                .orElseThrow(() -> new RuntimeException("Package not found with id: " + packageId));
+
+        // Authorization: Customer can only view plans from their own packages
+        // Superadmin and Tour Package Vendor can view all plans
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new RuntimeException("Authentication required");
+        }
+
+        String currentUsername = authentication.getName();
+        EndUser currentUser = endUserRepository.findByUsernameIgnoreCase(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check authorization
+        boolean canView = false;
+        if (currentUser.getRoleType() == RoleType.SUPERADMIN ||
+                currentUser.getRoleType() == RoleType.TOUR_PACKAGE_VENDOR) {
+            canView = true;
+        } else if (currentUser.getRoleType() == RoleType.CUSTOMER) {
+            canView = packageEntity.getUserId().equals(currentUser.getId().toString());
+        }
+
+        if (!canView) {
+            throw new RuntimeException("You do not have permission to view plans for this package");
+        }
+
+        // Get all non-deleted plans for this package
+        return packageEntity.getPlans().stream()
+                .filter(plan -> plan.getDeletedAt() == null)
+                .map(this::toPlanResponseDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     public PlanResponseDTO createPlan(String packageId, CreatePlanRequestDTO requestDTO) {
+        // Validate: All required fields must not be empty
+        if (requestDTO.getPlanName() == null || requestDTO.getPlanName().trim().isEmpty()) {
+            throw new RuntimeException("Plan name is required");
+        }
+        if (requestDTO.getActivityType() == null || requestDTO.getActivityType().trim().isEmpty()) {
+            throw new RuntimeException("Activity type is required");
+        }
+        if (requestDTO.getStartDate() == null) {
+            throw new RuntimeException("Start date is required");
+        }
+        if (requestDTO.getEndDate() == null) {
+            throw new RuntimeException("End date is required");
+        }
+        if (requestDTO.getStartLocation() == null || requestDTO.getStartLocation().trim().isEmpty()) {
+            throw new RuntimeException("Start location is required");
+        }
+        if (requestDTO.getEndLocation() == null || requestDTO.getEndLocation().trim().isEmpty()) {
+            throw new RuntimeException("End location is required");
+        }
+
         // Get the package
         Package packageEntity = packageRepository.findById(packageId)
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + packageId));
@@ -99,6 +163,12 @@ public class PlanRestServiceImpl implements PlanRestService {
         Plan plan = planRepository.findById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
 
+        // Authorization: Customer can only view plans from their own packages
+        // Superadmin and Tour Package Vendor can view all plans
+        if (!canUserViewPlan(plan)) {
+            throw new RuntimeException("You do not have permission to view this plan");
+        }
+
         return toPlanDetailResponseDTO(plan);
     }
 
@@ -108,18 +178,9 @@ public class PlanRestServiceImpl implements PlanRestService {
         Plan plan = planRepository.findById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
 
-        // Validate: Plan tidak boleh memiliki OrderedQuantity (non-deleted)
-        long activeOrderedQuantities = plan.getOrderedQuantities() != null
-                ? plan.getOrderedQuantities().stream().filter(oq -> oq.getDeletedAt() == null).count()
-                : 0;
-
-        if (activeOrderedQuantities > 0) {
-            throw new RuntimeException("Cannot edit plan. Plan must not have any ordered activities.");
-        }
-
-        // Validate: Package harus memiliki status "Pending"
-        if (!"PENDING".equalsIgnoreCase(plan.getPackageEntity().getStatus())) {
-            throw new RuntimeException("Cannot edit plan. Package must have status 'Pending'.");
+        // Validate: Only plans with status 'Unfulfilled' can be updated
+        if (!"Unfulfilled".equalsIgnoreCase(plan.getStatus())) {
+            throw new RuntimeException("Cannot edit plan. Only plans with status 'Unfulfilled' can be edited.");
         }
 
         // Validate: EndDate tidak boleh lebih dahulu daripada startDate
@@ -236,37 +297,76 @@ public class PlanRestServiceImpl implements PlanRestService {
         // Get Package
         Package pkg = currentPlan.getPackageEntity();
 
-        // Validation 1: Package must be PENDING
-        if (!"PENDING".equals(pkg.getStatus())) {
-            throw new RuntimeException("Cannot add activities. Package status must be PENDING");
+        // Authorization: Customer can only create OrderedActivities for their own
+        // packages
+        // Superadmin and Tour Package Vendor can create for all packages
+        if (!canUserEditPackage(pkg)) {
+            throw new RuntimeException("You do not have permission to add activities to this package");
+        }
+
+        // Validation 1: Plan status must be Unfulfilled (can add activities)
+        if (!"Unfulfilled".equalsIgnoreCase(currentPlan.getStatus())) {
+            throw new RuntimeException("Cannot add activities. Plan status must be Unfulfilled");
         }
 
         // Get Activity Plan (the plan that will be added as activity)
         Plan activityPlan = planRepository.findById(requestDTO.getActivityId())
                 .orElseThrow(() -> new RuntimeException("Activity plan not found"));
 
-        // Validation 2: ActivityType must match
+        // Validation 2: Activity must be active (not soft deleted)
+        if (activityPlan.getDeletedAt() != null) {
+            throw new RuntimeException("Activity is not active (has been deleted)");
+        }
+
+        // Validation 3: Validate quota > 0
+        Package activityPackage = activityPlan.getPackageEntity();
+        if (activityPackage.getQuota() <= 0) {
+            throw new RuntimeException("Activity quota must be greater than 0");
+        }
+
+        // Validation 4: Validate price > 0
+        if (activityPlan.getPrice() <= 0) {
+            throw new RuntimeException("Activity price must be greater than 0");
+        }
+
+        // Validation 5: Validate orderedQuota >= 0
+        if (requestDTO.getOrderedQuantity() < 0) {
+            throw new RuntimeException("Ordered quantity must be greater than or equal to 0");
+        }
+
+        // Validation 6: Validate orderedQuota <= quota (activity capacity)
+        if (requestDTO.getOrderedQuantity() > activityPackage.getQuota()) {
+            throw new RuntimeException(
+                    "Ordered quantity cannot exceed activity capacity (" + activityPackage.getQuota() + ")");
+        }
+
+        // Validation 7: Validate startDate < endDate for the activity
+        if (!activityPlan.getEndDate().isAfter(activityPlan.getStartDate())) {
+            throw new RuntimeException("Activity end date must be after start date");
+        }
+
+        // Validation 8: ActivityType must match
         if (!activityPlan.getActivityType().equals(currentPlan.getActivityType())) {
             throw new RuntimeException("Activity type must match plan activity type");
         }
 
-        // Validation 3: Activity plan start date >= Current plan start date
+        // Validation 9: Activity plan start date >= Current plan start date
         if (activityPlan.getStartDate().isBefore(currentPlan.getStartDate())) {
             throw new RuntimeException("Activity start date must be on or after plan start date");
         }
 
-        // Validation 4: Activity plan end date <= Current plan end date
+        // Validation 10: Activity plan end date <= Current plan end date
         if (activityPlan.getEndDate().isAfter(currentPlan.getEndDate())) {
             throw new RuntimeException("Activity end date must be on or before plan end date");
         }
 
-        // Validation 5: Start and End locations must match
+        // Validation 11: Start and End locations must match
         if (!activityPlan.getStartLocation().equals(currentPlan.getStartLocation()) ||
                 !activityPlan.getEndLocation().equals(currentPlan.getEndLocation())) {
             throw new RuntimeException("Activity start and end locations must match plan locations");
         }
 
-        // Validation 6: Check total ordered quantity <= package quota
+        // Validation 12: Check total ordered quantity <= package quota
         int totalOrderedQuantity = currentPlan.getOrderedQuantities().stream()
                 .filter(oq -> oq.getDeletedAt() == null)
                 .mapToInt(OrderedQuantity::getOrderedQuota)
@@ -274,13 +374,6 @@ public class PlanRestServiceImpl implements PlanRestService {
 
         if (totalOrderedQuantity + requestDTO.getOrderedQuantity() > pkg.getQuota()) {
             throw new RuntimeException("Total ordered quantity cannot exceed package quota");
-        }
-
-        // Validation 7: Check ordered quantity <= activity plan capacity (use package
-        // quota as capacity)
-        Package activityPackage = activityPlan.getPackageEntity();
-        if (requestDTO.getOrderedQuantity() > activityPackage.getQuota()) {
-            throw new RuntimeException("Ordered quantity cannot exceed activity capacity");
         }
 
         // Create OrderedQuantity
@@ -380,14 +473,21 @@ public class PlanRestServiceImpl implements PlanRestService {
         Plan plan = orderedQuantity.getPlan();
         Package pkg = plan.getPackageEntity();
 
-        // Validation 1: Package status must be PENDING
-        if (!"PENDING".equals(pkg.getStatus())) {
-            throw new RuntimeException("Cannot edit ordered activity. Package status must be PENDING");
+        // Authorization: Customer can only update OrderedActivities from their own
+        // packages
+        // Superadmin and Tour Package Vendor can update for all packages
+        if (!canUserEditPackage(pkg)) {
+            throw new RuntimeException("You do not have permission to update activities in this package");
         }
 
-        // Validation 2: New ordered quantity must be at least 1
-        if (requestDTO.getOrderedQuantity() < 1) {
-            throw new RuntimeException("Ordered quantity must be at least 1");
+        // Validation 1: Plan status must be Unfulfilled
+        if (!"Unfulfilled".equalsIgnoreCase(plan.getStatus())) {
+            throw new RuntimeException("Cannot edit ordered activity. Plan status must be Unfulfilled");
+        }
+
+        // Validation 2: New ordered quantity must be at least 0
+        if (requestDTO.getOrderedQuantity() < 0) {
+            throw new RuntimeException("Ordered quantity must be greater than or equal to 0");
         }
 
         // Validation 3: Check if new ordered quantity exceeds activity capacity
@@ -446,9 +546,16 @@ public class PlanRestServiceImpl implements PlanRestService {
         Plan plan = orderedQuantity.getPlan();
         Package pkg = plan.getPackageEntity();
 
-        // Validation 1: Package status must be PENDING
-        if (!"PENDING".equals(pkg.getStatus())) {
-            throw new RuntimeException("Cannot delete ordered activity. Package status must be PENDING");
+        // Authorization: Customer can only delete OrderedActivities from their own
+        // packages
+        // Superadmin and Tour Package Vendor can delete for all packages
+        if (!canUserEditPackage(pkg)) {
+            throw new RuntimeException("You do not have permission to delete activities from this package");
+        }
+
+        // Validation 1: Plan status must be Unfulfilled (pending)
+        if (!"Unfulfilled".equalsIgnoreCase(plan.getStatus())) {
+            throw new RuntimeException("Cannot delete ordered activity. Plan status must be Unfulfilled");
         }
 
         // Soft delete: set deletedAt to current timestamp
@@ -486,16 +593,81 @@ public class PlanRestServiceImpl implements PlanRestService {
         Plan plan = planRepository.findById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found with id: " + planId));
 
-        // Get the package
-        Package pkg = plan.getPackageEntity();
+        // Validation: Only plans with status 'Unfulfilled' can be deleted
+        if (!"Unfulfilled".equalsIgnoreCase(plan.getStatus())) {
+            throw new RuntimeException("Only plans with status 'Unfulfilled' can be deleted.");
+        }
 
-        // Validation: Package status must be PENDING
-        if (!"PENDING".equals(pkg.getStatus())) {
-            throw new RuntimeException("Cannot delete plan. Package status must be PENDING");
+        // Cascade delete: Soft delete all OrderedActivities
+        if (plan.getOrderedQuantities() != null) {
+            LocalDateTime now = LocalDateTime.now();
+            plan.getOrderedQuantities().forEach(oq -> {
+                if (oq.getDeletedAt() == null) {
+                    oq.setDeletedAt(now);
+                }
+            });
         }
 
         // Soft delete: set deletedAt to current timestamp
         plan.setDeletedAt(LocalDateTime.now());
         planRepository.save(plan);
+    }
+
+    // Authorization helper methods
+    private boolean canUserEditPackage(Package pkg) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return false;
+        }
+
+        String currentUsername = authentication.getName();
+        EndUser currentUser = endUserRepository.findByUsernameIgnoreCase(currentUsername)
+                .orElse(null);
+
+        if (currentUser == null) {
+            return false;
+        }
+
+        // Superadmin and Tour Package Vendor can edit all packages
+        if (currentUser.getRoleType() == RoleType.SUPERADMIN ||
+                currentUser.getRoleType() == RoleType.TOUR_PACKAGE_VENDOR) {
+            return true;
+        }
+
+        // Customer can only edit their own packages
+        if (currentUser.getRoleType() == RoleType.CUSTOMER) {
+            return pkg.getUserId().equals(currentUser.getId().toString());
+        }
+
+        return false;
+    }
+
+    private boolean canUserViewPlan(Plan plan) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            return false;
+        }
+
+        String currentUsername = authentication.getName();
+        EndUser currentUser = endUserRepository.findByUsernameIgnoreCase(currentUsername)
+                .orElse(null);
+
+        if (currentUser == null) {
+            return false;
+        }
+
+        // Superadmin and Tour Package Vendor can view all plans
+        if (currentUser.getRoleType() == RoleType.SUPERADMIN ||
+                currentUser.getRoleType() == RoleType.TOUR_PACKAGE_VENDOR) {
+            return true;
+        }
+
+        // Customer can only view plans from packages they created
+        if (currentUser.getRoleType() == RoleType.CUSTOMER) {
+            Package pkg = plan.getPackageEntity();
+            return pkg.getUserId().equals(currentUser.getId().toString());
+        }
+
+        return false;
     }
 }

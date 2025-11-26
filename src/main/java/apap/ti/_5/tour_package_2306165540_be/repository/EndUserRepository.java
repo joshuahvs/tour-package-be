@@ -1,7 +1,10 @@
 package apap.ti._5.tour_package_2306165540_be.repository;
 
 import apap.ti._5.tour_package_2306165540_be.model.profile.EndUser;
+import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,4 +24,7 @@ public interface EndUserRepository extends JpaRepository<EndUser, UUID> {
     List<EndUser> findAllByActiveIsTrueOrderByUsernameAsc();
 
     List<EndUser> findAllByOrderByUsernameAsc();
+
+    @Query("SELECT u FROM EndUser u WHERE TYPE(u) = :roleType")
+    List<EndUser> findByRoleType(@Param("roleType") Class<? extends EndUser> roleType);
 }

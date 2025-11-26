@@ -1,11 +1,15 @@
 package apap.ti._5.tour_package_2306165540_be.restservice;
 
+import apap.ti._5.tour_package_2306165540_be.model.TopUpTransaction;
 import apap.ti._5.tour_package_2306165540_be.model.profile.*;
 import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
+import apap.ti._5.tour_package_2306165540_be.repository.TopUpTransactionRepository;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreateEndUserRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateEndUserRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.CustomerResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.EndUserResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.TopUpTransactionResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.response.UserProfileResponseDTO;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,6 +34,7 @@ public class EndUserRestServiceImpl implements EndUserRestService {
     private static final String SALDO_SUPERADMIN_ONLY_MESSAGE = "Saldo hanya dapat diperbarui oleh Superadmin.";
 
     private final EndUserRepository endUserRepository;
+    private final TopUpTransactionRepository topUpTransactionRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -72,6 +77,23 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         return byId.or(() -> byUsername).or(() -> byEmail)
                 .map(this::toEndUserResponse)
                 .orElse(null);
+    }
+
+    @Override
+    public UserProfileResponseDTO getUserProfile(String identifier) {
+        Optional<EndUser> byId = parseUuid(identifier)
+                .flatMap(endUserRepository::findById);
+        Optional<EndUser> byUsername = endUserRepository.findByUsernameIgnoreCase(identifier);
+        Optional<EndUser> byEmail = endUserRepository.findByEmailIgnoreCase(identifier);
+
+        EndUser user = byId.or(() -> byUsername).or(() -> byEmail)
+                .orElse(null);
+
+        if (user == null) {
+            return null;
+        }
+
+        return toUserProfileResponse(user);
     }
 
     @Override
@@ -256,6 +278,47 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         dto.setSaldo(customer.getSaldo());
         dto.setCreatedAt(customer.getCreatedAt());
         dto.setUpdatedAt(customer.getUpdatedAt());
+        return dto;
+    }
+
+    private UserProfileResponseDTO toUserProfileResponse(EndUser user) {
+        UserProfileResponseDTO dto = new UserProfileResponseDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setFullName(user.getFullName());
+        dto.setGender(user.getGender());
+        dto.setRole(user.getRoleType().name());
+        dto.setRoleDisplayName(user.getRoleType().getDisplayName());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setUpdatedAt(user.getUpdatedAt());
+
+        // Set saldo only for Customer
+        if (user instanceof Customer customer) {
+            dto.setSaldo(customer.getSaldo());
+        } else {
+            dto.setSaldo(0L);
+        }
+
+        // Get top-up transactions
+        List<TopUpTransaction> transactions = topUpTransactionRepository
+                .findByUserIdOrderByTransactionDateDesc(user.getId());
+        List<TopUpTransactionResponseDTO> transactionDTOs = transactions.stream()
+                .map(this::toTopUpTransactionResponse)
+                .collect(Collectors.toList());
+        dto.setTopUpTransactions(transactionDTOs);
+
+        return dto;
+    }
+
+    private TopUpTransactionResponseDTO toTopUpTransactionResponse(TopUpTransaction transaction) {
+        TopUpTransactionResponseDTO dto = new TopUpTransactionResponseDTO();
+        dto.setId(transaction.getId());
+        dto.setUserId(transaction.getUserId());
+        dto.setAmount(transaction.getAmount());
+        dto.setStatus(transaction.getStatus());
+        dto.setTransactionDate(transaction.getTransactionDate());
+        dto.setDescription(transaction.getDescription());
         return dto;
     }
 

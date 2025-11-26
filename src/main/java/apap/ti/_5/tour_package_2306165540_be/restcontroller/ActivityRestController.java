@@ -1,55 +1,38 @@
 package apap.ti._5.tour_package_2306165540_be.restcontroller;
 
-import apap.ti._5.tour_package_2306165540_be.model.Activity;
-import apap.ti._5.tour_package_2306165540_be.repository.ActivityRepository;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.CreateActivityRequestDTO;
+import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateActivityRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.ActivityResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
+import apap.ti._5.tour_package_2306165540_be.restservice.ActivityRestService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/activities")
 public class ActivityRestController {
 
-    private final ActivityRepository activityRepository;
+    private final ActivityRestService activityRestService;
 
-    public ActivityRestController(ActivityRepository activityRepostory){
-        this.activityRepository = activityRepostory;
+    public ActivityRestController(ActivityRestService activityRestService) {
+        this.activityRestService = activityRestService;
     }
 
     @GetMapping
     public ResponseEntity<BaseResponseDTO<List<ActivityResponseDTO>>> getAllActivities(
             @RequestParam(name = "activityType", required = false) String activityType,
+            @RequestParam(name = "startLocation", required = false) String startLocation,
+            @RequestParam(name = "endLocation", required = false) String endLocation,
             @RequestParam(name = "startDate", required = false) String startDateParam,
             @RequestParam(name = "endDate", required = false) String endDateParam,
             @RequestParam(name = "search", required = false) String search) {
         try {
-            LocalDateTime startDate = parseDateParam(startDateParam);
-            LocalDateTime endDate = parseDateParam(endDateParam);
-
-            if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
-                throw new IllegalArgumentException("End date cannot be before start date");
-            }
-
-            List<Activity> activities = activityRepository.findAll();
-            List<ActivityResponseDTO> activityDTOs = activities.stream()
-                    .filter(activity -> filterByType(activity, activityType))
-                    .filter(activity -> filterByStartDate(activity, startDate))
-                    .filter(activity -> filterByEndDate(activity, endDate))
-                    .filter(activity -> filterBySearch(activity, search))
-                    .sorted(Comparator.comparing(Activity::getStartDate,
-                            Comparator.nullsLast(LocalDateTime::compareTo)))
-                    .map(activity -> convertToDTO(activity))
-                    .collect(Collectors.toList());
+            List<ActivityResponseDTO> activityDTOs = activityRestService.getAllActivities(
+                    activityType, startLocation, endLocation, startDateParam, endDateParam, search);
 
             BaseResponseDTO<List<ActivityResponseDTO>> response = new BaseResponseDTO<>();
             response.setStatus(HttpStatus.OK.value());
@@ -76,64 +59,170 @@ public class ActivityRestController {
         }
     }
 
-    private ActivityResponseDTO convertToDTO(Activity activity) {
-        ActivityResponseDTO dto = new ActivityResponseDTO();
-        dto.setId(activity.getId());
-        dto.setActivityName(activity.getActivityName());
-        dto.setActivityItem(activity.getActivityItem());
-        dto.setCapacity(activity.getCapacity());
-        dto.setPrice(activity.getPrice());
-        dto.setActivityType(activity.getActivityType());
-        dto.setStartDate(activity.getStartDate());
-        dto.setEndDate(activity.getEndDate());
-        dto.setStartLocation(activity.getStartLocation());
-        dto.setEndLocation(activity.getEndLocation());
-        return dto;
-    }
-
-    private boolean filterByType(Activity activity, String desiredType) {
-        if (desiredType == null || desiredType.isBlank()) {
-            return true;
-        }
-        if (activity.getActivityType() == null) {
-            return false;
-        }
-        return activity.getActivityType().equalsIgnoreCase(desiredType.trim());
-    }
-
-    private boolean filterByStartDate(Activity activity, LocalDateTime startDate) {
-        if (startDate == null || activity.getStartDate() == null) {
-            return true;
-        }
-        return !activity.getStartDate().isBefore(startDate);
-    }
-
-    private boolean filterByEndDate(Activity activity, LocalDateTime endDate) {
-        if (endDate == null || activity.getEndDate() == null) {
-            return true;
-        }
-        return !activity.getEndDate().isAfter(endDate);
-    }
-
-    private boolean filterBySearch(Activity activity, String search) {
-        if (search == null || search.isBlank()) {
-            return true;
-        }
-        String keyword = search.trim().toLowerCase();
-        return (activity.getActivityName() != null && activity.getActivityName().toLowerCase().contains(keyword))
-                || (activity.getActivityItem() != null && activity.getActivityItem().toLowerCase().contains(keyword))
-                || (activity.getStartLocation() != null && activity.getStartLocation().toLowerCase().contains(keyword))
-                || (activity.getEndLocation() != null && activity.getEndLocation().toLowerCase().contains(keyword));
-    }
-
-    private LocalDateTime parseDateParam(String rawDate) {
-        if (rawDate == null || rawDate.isBlank()) {
-            return null;
-        }
+    @GetMapping("/{id}")
+    public ResponseEntity<BaseResponseDTO<ActivityResponseDTO>> getActivityById(@PathVariable String id) {
         try {
-            return LocalDateTime.parse(rawDate.trim(), DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-        } catch (DateTimeParseException ex) {
-            throw new IllegalArgumentException("Invalid date format. Please use ISO-8601 format (yyyy-MM-dd'T'HH:mm)");
+            ActivityResponseDTO activity = activityRestService.getActivityById(id);
+
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully retrieved activity");
+            response.setData(activity);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to retrieve activity: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<BaseResponseDTO<ActivityResponseDTO>> createActivity(
+            @RequestBody CreateActivityRequestDTO requestDTO) {
+        try {
+            ActivityResponseDTO activity = activityRestService.createActivity(requestDTO);
+
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.CREATED.value());
+            response.setMessage("Successfully created activity");
+            response.setData(activity);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+
+            if (e.getMessage().contains("permission") || e.getMessage().contains("can only create")) {
+                response.setStatus(HttpStatus.FORBIDDEN.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to create activity: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<BaseResponseDTO<ActivityResponseDTO>> updateActivity(
+            @PathVariable String id,
+            @RequestBody UpdateActivityRequestDTO requestDTO) {
+        try {
+            ActivityResponseDTO activity = activityRestService.updateActivity(id, requestDTO);
+
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully updated activity");
+            response.setData(activity);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+
+            if (e.getMessage().contains("not found")) {
+                response.setStatus(HttpStatus.NOT_FOUND.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            if (e.getMessage().contains("can only modify") || e.getMessage().contains("Authentication required")) {
+                response.setStatus(HttpStatus.FORBIDDEN.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<ActivityResponseDTO> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to update activity: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<BaseResponseDTO<Void>> deleteActivity(@PathVariable String id) {
+        try {
+            activityRestService.deleteActivity(id);
+
+            BaseResponseDTO<Void> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully deleted activity");
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<Void> response = new BaseResponseDTO<>();
+
+            if (e.getMessage().contains("not found")) {
+                response.setStatus(HttpStatus.NOT_FOUND.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            if (e.getMessage().contains("can only modify") || e.getMessage().contains("Authentication required")) {
+                response.setStatus(HttpStatus.FORBIDDEN.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
+
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<Void> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to delete activity: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }

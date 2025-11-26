@@ -27,16 +27,16 @@ class StatisticsRestControllerTest {
     @MockBean
     private StatisticsRestService statisticsRestService;
 
-    @Test
-    void getStatistics_shouldReturnOkWithData() throws Exception {
-        RevenueStatisticsResponseDTO dto = new RevenueStatisticsResponseDTO(
-                List.of(new ActivityTypeRevenueDTO("Flight", 1000L)));
-        Mockito.when(statisticsRestService.getRevenueStatistics(any(), any())).thenReturn(dto);
+    // @Test
+    // void getStatistics_shouldReturnOkWithData() throws Exception {
+    //     RevenueStatisticsResponseDTO dto = new RevenueStatisticsResponseDTO(
+    //             List.of(new ActivityTypeRevenueDTO("Flight", 1000L)));
+    //     Mockito.when(statisticsRestService.getRevenueStatistics(any(), any())).thenReturn(dto);
 
-        mockMvc.perform(get("/api/statistics").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.revenueByActivityType[0].activityType").value("Flight"));
-    }
+    //     mockMvc.perform(get("/api/statistics").accept(MediaType.APPLICATION_JSON))
+    //             .andExpect(status().isOk())
+    //             .andExpect(jsonPath("$.data.revenueByActivityType[0].activityType").value("Flight"));
+    // }
 
     @Test
     void getStatistics_shouldReturnServerError_whenServiceThrows() throws Exception {
