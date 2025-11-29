@@ -51,6 +51,8 @@ public class WebSecurityConfig {
                         // TOUR PACKAGE MODULE
                         .requestMatchers("/api/packages")
                         .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
+                        .requestMatchers("/api/create")
+                        .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers("/api/packages/*")
                         .hasAnyAuthority("SUPERADMIN", "CUSTOMER", "TOUR_PACKAGE_VENDOR")
                         .requestMatchers("/api/packages/*/process").hasAuthority("CUSTOMER")

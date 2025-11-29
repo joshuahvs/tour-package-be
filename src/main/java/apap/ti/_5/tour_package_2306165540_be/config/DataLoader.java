@@ -322,7 +322,8 @@ public class DataLoader implements CommandLineRunner {
             String flightAirlineId, String accommodationOwnerId, String rentalVendorId) {
         // Start numbering after the existing fixed activities
         int nextIndex = existingCount + 1;
-        final int perType = FAKER_PER_ACTIVITY_TYPE;
+        // Reduce to create more manageable, relevant activities
+        final int perType = 20; // Reduced from 120 to 20 per type
         List<Activity> list = new ArrayList<>();
 
         Faker faker = new Faker(Locale.forLanguageTag("id-ID"));
@@ -335,20 +336,22 @@ public class DataLoader implements CommandLineRunner {
                 "Sumatera Utara (Provinsi)", "Sumatera Barat (Provinsi)", "Aceh", "Riau",
                 "Kalimantan Timur (Provinsi)", "Sulawesi Selatan (Provinsi)");
 
-        // Flights
+        // Flights - create activities with dates spread over next 2 months
         for (int i = 0; i < perType; i++) {
             String origin = randomPickDifferent(provinces, null);
             String dest = randomPickDifferent(provinces, origin);
-            LocalDateTime start = now.plusDays(randBetween(1, 60)).withHour(randBetween(5, 22))
-                    .withMinute(randBetween(0, 59));
-            LocalDateTime end = start.plusHours(randBetween(1, 3)).plusMinutes(randBetween(0, 45));
+            // Spread flights over next 60 days, mostly during daytime hours
+            LocalDateTime start = now.plusDays(randBetween(1, 60))
+                    .withHour(randBetween(6, 20))
+                    .withMinute(randBetween(0, 3) * 15); // 0, 15, 30, 45 minutes
+            LocalDateTime end = start.plusHours(randBetween(1, 3)).plusMinutes(randBetween(0, 3) * 15);
 
             Activity a = new Activity();
             a.setId(String.format("ACT-%03d", nextIndex++));
-            a.setActivityName(String.format("%s Flight %s - %s",
-                    faker.company().name(), cleanProvince(origin), cleanProvince(dest)));
-            a.setActivityItem("Flight Ticket");
-            a.setCapacity(randBetween(100, 250));
+            a.setActivityName(String.format("%s to %s Flight",
+                    cleanProvince(origin), cleanProvince(dest)));
+            a.setActivityItem("Flight Ticket with Baggage");
+            a.setCapacity(randBetween(50, 200));
             a.setPrice((long) randBetween(500_000, 3_000_000));
             a.setActivityType("Flight");
             a.setCreatorId(flightAirlineId);
@@ -359,17 +362,23 @@ public class DataLoader implements CommandLineRunner {
             list.add(a);
         }
 
-        // Accommodation
+        // Accommodation - create hotels with dates covering plan periods
         for (int i = 0; i < perType; i++) {
             String city = randomPickDifferent(provinces, null);
-            LocalDateTime start = now.plusDays(randBetween(1, 90)).withHour(12).withMinute(0);
-            LocalDateTime end = start.plusDays(randBetween(1, 7)).withHour(11).withMinute(0);
+            // Spread accommodations over next 90 days
+            LocalDateTime start = now.plusDays(randBetween(1, 90))
+                    .withHour(14) // Standard check-in 2 PM
+                    .withMinute(0);
+            LocalDateTime end = start.plusDays(randBetween(1, 7)) // 1-7 night stays
+                    .withHour(11) // Standard check-out 11 AM
+                    .withMinute(0);
 
             Activity a = new Activity();
             a.setId(String.format("ACT-%03d", nextIndex++));
-            a.setActivityName(String.format("%s Hotel Stay - %s",
-                    faker.company().name(), cleanProvince(city)));
-            a.setActivityItem("Room, Breakfast Included");
+            a.setActivityName(String.format("%s Hotel %s",
+                    cleanProvince(city), (char) ('A' + (i % 26))));
+            a.setActivityItem(String.format("%d Star Hotel Room, Breakfast Included",
+                    randBetween(3, 5)));
             a.setCapacity(randBetween(10, 100));
             a.setPrice((long) randBetween(200_000, 2_000_000));
             a.setActivityType("Accommodation");
@@ -381,18 +390,23 @@ public class DataLoader implements CommandLineRunner {
             list.add(a);
         }
 
-        // Vehicle Rental
+        // Vehicle Rental - create rentals with dates covering plan periods
         for (int i = 0; i < perType; i++) {
             String city = randomPickDifferent(provinces, null);
-            LocalDateTime start = now.plusDays(randBetween(1, 60)).withHour(randBetween(7, 20))
-                    .withMinute(randBetween(0, 59));
-            LocalDateTime end = start.plusHours(randBetween(2, 12));
+            // Spread rentals over next 60 days, typical business hours
+            LocalDateTime start = now.plusDays(randBetween(1, 60))
+                    .withHour(randBetween(8, 18))
+                    .withMinute(0);
+            LocalDateTime end = start.plusHours(randBetween(4, 12)); // Half-day to full-day rentals
 
             Activity a = new Activity();
             a.setId(String.format("ACT-%03d", nextIndex++));
-            a.setActivityName(String.format("%s Car Rental",
-                    faker.ancient().titan()));
-            a.setActivityItem("Car, Insurance");
+            String[] vehicleTypes = { "Sedan", "SUV", "Minibus", "MPV", "Van" };
+            a.setActivityName(String.format("%s %s Rental - %s",
+                    cleanProvince(city),
+                    vehicleTypes[randBetween(0, vehicleTypes.length - 1)],
+                    (char) ('A' + (i % 26))));
+            a.setActivityItem("Vehicle, Full Insurance, Driver Optional");
             a.setCapacity(randBetween(10, 50));
             a.setPrice((long) randBetween(300_000, 1_000_000));
             a.setActivityType("Vehicle Rental");

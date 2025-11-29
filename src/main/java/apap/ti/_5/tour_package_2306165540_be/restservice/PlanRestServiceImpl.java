@@ -1,10 +1,12 @@
 package apap.ti._5.tour_package_2306165540_be.restservice;
 
+import apap.ti._5.tour_package_2306165540_be.model.Activity;
 import apap.ti._5.tour_package_2306165540_be.model.OrderedQuantity;
 import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.model.profile.EndUser;
 import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
+import apap.ti._5.tour_package_2306165540_be.repository.ActivityRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.OrderedQuantityRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
@@ -16,14 +18,21 @@ import apap.ti._5.tour_package_2306165540_be.restdto.request.UpdateOrderedQuanti
 import apap.ti._5.tour_package_2306165540_be.restdto.response.OrderedQuantityResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,13 +43,19 @@ public class PlanRestServiceImpl implements PlanRestService {
     private final PackageRepository packageRepository;
     private final OrderedQuantityRepository orderedQuantityRepository;
     private final EndUserRepository endUserRepository;
+    private final ActivityRepository activityRepository;
+    private final Map<String, String> locationNameToCode = new ConcurrentHashMap<>();
+    private static final String WILAYAH_API_URL = "https://wilayah.id/api/provinces.json";
+    private static final Pattern LOCATION_CODE_PATTERN = Pattern.compile("\\((\\d+)\\)");
 
     public PlanRestServiceImpl(PlanRepository planRepository, PackageRepository packageRepository,
-            OrderedQuantityRepository orderedQuantityRepository, EndUserRepository endUserRepository) {
+            OrderedQuantityRepository orderedQuantityRepository, EndUserRepository endUserRepository,
+            ActivityRepository activityRepository) {
         this.planRepository = planRepository;
         this.packageRepository = packageRepository;
         this.orderedQuantityRepository = orderedQuantityRepository;
         this.endUserRepository = endUserRepository;
+        this.activityRepository = activityRepository;
     }
 
     @Override
@@ -309,64 +324,114 @@ public class PlanRestServiceImpl implements PlanRestService {
             throw new RuntimeException("Cannot add activities. Plan status must be Unfulfilled");
         }
 
-        // Get Activity Plan (the plan that will be added as activity)
-        Plan activityPlan = planRepository.findById(requestDTO.getActivityId())
-                .orElseThrow(() -> new RuntimeException("Activity plan not found"));
+        // Try to get Activity first (if activityId was generated from Activity)
+        // Activity IDs are stored as UUIDs generated from their string IDs
+        Activity activity = null;
+        Plan activityPlan = null;
+        String activityType = null;
+        LocalDateTime startDate = null;
+        LocalDateTime endDate = null;
+        String startLocation = null;
+        String endLocation = null;
+        Long price = null;
+        int capacity = 0;
 
-        // Validation 2: Activity must be active (not soft deleted)
-        if (activityPlan.getDeletedAt() != null) {
-            throw new RuntimeException("Activity is not active (has been deleted)");
+        // First, try to find it as a Plan
+        activityPlan = planRepository.findById(requestDTO.getActivityId()).orElse(null);
+
+        if (activityPlan != null) {
+            // It's a Plan being used as an activity
+            // Validation: Activity Plan must be active (not soft deleted)
+            if (activityPlan.getDeletedAt() != null) {
+                throw new RuntimeException("Activity is not active (has been deleted)");
+            }
+
+            Package activityPackage = activityPlan.getPackageEntity();
+            activityType = activityPlan.getActivityType();
+            startDate = activityPlan.getStartDate();
+            endDate = activityPlan.getEndDate();
+            startLocation = activityPlan.getStartLocation();
+            endLocation = activityPlan.getEndLocation();
+            price = activityPlan.getPrice();
+            capacity = activityPackage.getQuota();
+        } else {
+            // It might be an Activity - we need to find it by trying all activities
+            // and checking if the UUID matches the one generated from activity ID
+            List<Activity> allActivities = activityRepository.findAll();
+            for (Activity a : allActivities) {
+                UUID generatedUUID = UUID.nameUUIDFromBytes(a.getId().getBytes());
+                if (generatedUUID.equals(requestDTO.getActivityId())) {
+                    activity = a;
+                    break;
+                }
+            }
+
+            if (activity == null) {
+                throw new RuntimeException("Activity not found");
+            }
+
+            activityType = activity.getActivityType();
+            startDate = activity.getStartDate();
+            endDate = activity.getEndDate();
+            startLocation = activity.getStartLocation();
+            endLocation = activity.getEndLocation();
+            price = activity.getPrice();
+            capacity = activity.getCapacity();
         }
 
-        // Validation 3: Validate quota > 0
-        Package activityPackage = activityPlan.getPackageEntity();
-        if (activityPackage.getQuota() <= 0) {
-            throw new RuntimeException("Activity quota must be greater than 0");
+        // Validation 2: Validate quota > 0
+        if (capacity <= 0) {
+            throw new RuntimeException("Activity capacity must be greater than 0");
         }
 
-        // Validation 4: Validate price > 0
-        if (activityPlan.getPrice() <= 0) {
+        // Validation 3: Validate price > 0
+        if (price <= 0) {
             throw new RuntimeException("Activity price must be greater than 0");
         }
 
-        // Validation 5: Validate orderedQuota >= 0
+        // Validation 4: Validate orderedQuota >= 0
         if (requestDTO.getOrderedQuantity() < 0) {
             throw new RuntimeException("Ordered quantity must be greater than or equal to 0");
         }
 
-        // Validation 6: Validate orderedQuota <= quota (activity capacity)
-        if (requestDTO.getOrderedQuantity() > activityPackage.getQuota()) {
+        // Validation 5: Validate orderedQuota <= capacity
+        if (requestDTO.getOrderedQuantity() > capacity) {
             throw new RuntimeException(
-                    "Ordered quantity cannot exceed activity capacity (" + activityPackage.getQuota() + ")");
+                    "Ordered quantity cannot exceed activity capacity (" + capacity + ")");
         }
 
-        // Validation 7: Validate startDate < endDate for the activity
-        if (!activityPlan.getEndDate().isAfter(activityPlan.getStartDate())) {
+        // Validation 6: Validate startDate < endDate for the activity
+        if (!endDate.isAfter(startDate)) {
             throw new RuntimeException("Activity end date must be after start date");
         }
 
-        // Validation 8: ActivityType must match
-        if (!activityPlan.getActivityType().equals(currentPlan.getActivityType())) {
+        // Validation 7: ActivityType must match
+        if (!activityType.equals(currentPlan.getActivityType())) {
             throw new RuntimeException("Activity type must match plan activity type");
         }
 
-        // Validation 9: Activity plan start date >= Current plan start date
-        if (activityPlan.getStartDate().isBefore(currentPlan.getStartDate())) {
+        // Validation 8: Activity start date >= Current plan start date
+        if (startDate.isBefore(currentPlan.getStartDate())) {
             throw new RuntimeException("Activity start date must be on or after plan start date");
         }
 
-        // Validation 10: Activity plan end date <= Current plan end date
-        if (activityPlan.getEndDate().isAfter(currentPlan.getEndDate())) {
+        // Validation 9: Activity end date <= Current plan end date
+        if (endDate.isAfter(currentPlan.getEndDate())) {
             throw new RuntimeException("Activity end date must be on or before plan end date");
         }
 
-        // Validation 11: Start and End locations must match
-        if (!activityPlan.getStartLocation().equals(currentPlan.getStartLocation()) ||
-                !activityPlan.getEndLocation().equals(currentPlan.getEndLocation())) {
-            throw new RuntimeException("Activity start and end locations must match plan locations");
+        // Validation 10: Start and End locations must be compatible
+        boolean locationMatches = isLocationCompatible(
+                currentPlan.getStartLocation(),
+                currentPlan.getEndLocation(),
+                startLocation,
+                endLocation);
+
+        if (!locationMatches) {
+            throw new RuntimeException("Activity locations must be compatible with plan locations");
         }
 
-        // Validation 12: Check total ordered quantity <= package quota
+        // Validation 11: Check total ordered quantity <= package quota
         int totalOrderedQuantity = currentPlan.getOrderedQuantities().stream()
                 .filter(oq -> oq.getDeletedAt() == null)
                 .mapToInt(OrderedQuantity::getOrderedQuota)
@@ -379,15 +444,22 @@ public class PlanRestServiceImpl implements PlanRestService {
         // Create OrderedQuantity
         OrderedQuantity orderedQuantity = new OrderedQuantity();
         orderedQuantity.setId(UUID.randomUUID());
-        // Store the selected plan as the activity of this ordered quantity
-        orderedQuantity.setActivityPlan(activityPlan);
-        // Keep legacy activity null
-        orderedQuantity.setActivity(null);
+
+        if (activityPlan != null) {
+            // Store the selected plan as the activity of this ordered quantity
+            orderedQuantity.setActivityPlan(activityPlan);
+            orderedQuantity.setActivity(null);
+        } else {
+            // Store the actual activity
+            orderedQuantity.setActivity(activity);
+            orderedQuantity.setActivityPlan(null);
+        }
+
         orderedQuantity.setPlan(currentPlan);
-        orderedQuantity.setStartDate(activityPlan.getStartDate());
-        orderedQuantity.setEndDate(activityPlan.getEndDate());
-        orderedQuantity.setPrice(activityPlan.getPrice());
-        orderedQuantity.setQuota(activityPackage.getQuota());
+        orderedQuantity.setStartDate(startDate);
+        orderedQuantity.setEndDate(endDate);
+        orderedQuantity.setPrice(price);
+        orderedQuantity.setQuota(capacity);
         orderedQuantity.setOrderedQuota(requestDTO.getOrderedQuantity());
 
         orderedQuantityRepository.save(orderedQuantity);
@@ -426,18 +498,26 @@ public class PlanRestServiceImpl implements PlanRestService {
         Plan currentPlan = planRepository.findById(planId)
                 .orElseThrow(() -> new RuntimeException("Plan not found"));
 
-        // Get all plans and filter based on criteria
-        List<Plan> allPlans = planRepository.findAll();
+        // Get all activities and filter based on criteria
+        List<Activity> allActivities = activityRepository.findAll();
 
-        return allPlans.stream()
-                .filter(p -> !p.getId().equals(planId)) // Exclude current plan
-                .filter(p -> p.getActivityType().equals(currentPlan.getActivityType()))
-                .filter(p -> !p.getStartDate().isBefore(currentPlan.getStartDate()))
-                .filter(p -> !p.getEndDate().isAfter(currentPlan.getEndDate()))
-                .filter(p -> p.getStartLocation().equals(currentPlan.getStartLocation()))
-                .filter(p -> p.getEndLocation().equals(currentPlan.getEndLocation()))
-                .map(this::convertToResponseDTO)
+        // Filter activities that match the plan requirements
+        List<PlanResponseDTO> availableActivities = allActivities.stream()
+                // Filter by activity type matching plan activity type
+                .filter(a -> a.getActivityType().equals(currentPlan.getActivityType()))
+                // Filter by date: activity must fall within plan dates
+                .filter(a -> !a.getStartDate().isBefore(currentPlan.getStartDate()))
+                .filter(a -> !a.getEndDate().isAfter(currentPlan.getEndDate()))
+                // Filter by location: activity location should be compatible with plan
+                .filter(a -> isLocationCompatible(
+                        currentPlan.getStartLocation(),
+                        currentPlan.getEndLocation(),
+                        a.getStartLocation(),
+                        a.getEndLocation()))
+                .map(this::convertActivityToResponseDTO)
                 .collect(Collectors.toList());
+
+        return availableActivities;
     }
 
     private PlanResponseDTO convertToResponseDTO(Plan plan) {
@@ -460,6 +540,98 @@ public class PlanRestServiceImpl implements PlanRestService {
             dto.setCapacity(0);
         }
         return dto;
+    }
+
+    private PlanResponseDTO convertActivityToResponseDTO(Activity activity) {
+        PlanResponseDTO dto = new PlanResponseDTO();
+        // Use a temporary UUID based on activity ID for compatibility
+        dto.setId(UUID.nameUUIDFromBytes(activity.getId().getBytes()));
+        dto.setPlanName(activity.getActivityName());
+        dto.setPrice(activity.getPrice());
+        dto.setActivityType(activity.getActivityType());
+        dto.setStatus("ACTIVE"); // Activities are always active
+        dto.setStartDate(activity.getStartDate());
+        dto.setEndDate(activity.getEndDate());
+        dto.setStartLocation(activity.getStartLocation());
+        dto.setEndLocation(activity.getEndLocation());
+        dto.setActivitiesCount(0); // Not applicable for activities
+        dto.setCapacity(activity.getCapacity());
+        return dto;
+    }
+
+    private boolean isLocationCompatible(String planStart, String planEnd, String activityStart, String activityEnd) {
+        String normalizedPlanStart = normalizeLocationValue(planStart);
+        String normalizedPlanEnd = normalizeLocationValue(planEnd);
+        String normalizedActivityStart = normalizeLocationValue(activityStart);
+        String normalizedActivityEnd = normalizeLocationValue(activityEnd);
+
+        if (normalizedPlanStart.isEmpty() || normalizedPlanEnd.isEmpty()
+                || normalizedActivityStart.isEmpty() || normalizedActivityEnd.isEmpty()) {
+            // If we cannot determine the locations, don't block the activity
+            return true;
+        }
+
+        if (normalizedActivityStart.equalsIgnoreCase(normalizedActivityEnd)) {
+            // Same-location activities (e.g., hotel stay) just need to match either
+            return normalizedActivityStart.equalsIgnoreCase(normalizedPlanStart)
+                    || normalizedActivityStart.equalsIgnoreCase(normalizedPlanEnd);
+        }
+
+        // Transit activities (flight, vehicle) must match both start and end
+        return normalizedActivityStart.equalsIgnoreCase(normalizedPlanStart)
+                && normalizedActivityEnd.equalsIgnoreCase(normalizedPlanEnd);
+    }
+
+    private String normalizeLocationValue(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String value = raw.trim();
+        if (value.isEmpty()) {
+            return "";
+        }
+
+        Matcher matcher = LOCATION_CODE_PATTERN.matcher(value);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        if (value.matches("\\d+")) {
+            return value;
+        }
+
+        ensureLocationCacheLoaded();
+        String code = locationNameToCode.get(value.toLowerCase());
+        if (code != null) {
+            return code;
+        }
+
+        return value.toLowerCase();
+    }
+
+    private void ensureLocationCacheLoaded() {
+        if (!locationNameToCode.isEmpty()) {
+            return;
+        }
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String jsonResponse = restTemplate.getForObject(WILAYAH_API_URL, String.class);
+            if (jsonResponse == null) {
+                return;
+            }
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(jsonResponse);
+            JsonNode data = root.get("data");
+            if (data != null && data.isArray()) {
+                for (JsonNode node : data) {
+                    String code = node.get("code").asText();
+                    String name = node.get("name").asText();
+                    locationNameToCode.putIfAbsent(name.toLowerCase(), code);
+                }
+            }
+        } catch (Exception e) {
+            // Ignore errors and fall back to raw values
+        }
     }
 
     @Override
