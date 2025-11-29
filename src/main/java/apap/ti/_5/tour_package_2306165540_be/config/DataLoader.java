@@ -13,8 +13,8 @@ import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
 import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Component;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -46,8 +46,6 @@ public class DataLoader implements CommandLineRunner {
 
         LocalDateTime baseTime = LocalDateTime.now().truncatedTo(ChronoUnit.HOURS);
 
-        // Seed end users for Profile Service - always ensure they exist with correct
-        // passwords
         ensureSeedUsers();
 
         // Check if data already exists
@@ -56,19 +54,8 @@ public class DataLoader implements CommandLineRunner {
             return;
         }
 
-        // Get vendor user IDs for activity creators
-        String flightAirlineId = endUserRepository.findByUsernameIgnoreCase("flightairline")
-                .orElseThrow(() -> new RuntimeException("FlightAirline user not found"))
-                .getId().toString();
-        String accommodationOwnerId = endUserRepository.findByUsernameIgnoreCase("accommodationowner")
-                .orElseThrow(() -> new RuntimeException("AccommodationOwner user not found"))
-                .getId().toString();
-        String rentalVendorId = endUserRepository.findByUsernameIgnoreCase("rentalvendor")
-                .orElseThrow(() -> new RuntimeException("RentalVendor user not found"))
-                .getId().toString();
-
         // Create Activities
-        List<Activity> activities = createActivities(baseTime, flightAirlineId, accommodationOwnerId, rentalVendorId);
+        List<Activity> activities = createActivities(baseTime);
         activityRepository.saveAll(activities);
 
         // Create Packages
@@ -115,27 +102,57 @@ public class DataLoader implements CommandLineRunner {
         upsertUser(new TourPackageVendor(), "tourpackagevendor", "sales@wonderfuljourney.id",
                 "Tour Package Vendor", "+62-811-5566-7788", "pass", "Wonderful Journey",
                 "Menyusun itinerary wisata domestik.");
-
-        upsertUser(new RentalVendor(), "rentalvendor", "contact@driveasy.id", "Rental Vendor",
+        // Rental Vendor 1
+        RentalVendor rentalVendorTemplate = new RentalVendor();
+        rentalVendorTemplate.setListOfLocations(Arrays.asList("Jakarta", "Bali", "Yogyakarta", "Surabaya", "Medan"));
+        upsertUser(rentalVendorTemplate, "rentalvendor", "contact@driveasy.id", "Rental Vendor",
                 "+62-811-9988-1122", "pass", "Driveasy Fleet", "Menyediakan armada rental.");
+        // Rental Vendor 2
+        RentalVendor vendorNusantara = new RentalVendor();
+        vendorNusantara.setListOfLocations(Arrays.asList("Bandung", "Bogor", "Makassar", "Balikpapan", "Pontianak"));
+        upsertUser(vendorNusantara,
+                "rentalvendor_nusantara",
+                "admin@nusantara-rent.id",
+                "Nusantara Rental",
+                "+62-813-5555-7777",
+                "pass",
+                "CV Nusantara Trans",
+                "Spesialis rental mobil area Jawa Barat dan Kalimantan.");
 
         upsertUser(new Customer(), "customer", "customer@apap.id", "APAP Customer",
-                "+62-815-3333-2211", "pass", null, "Customer percobaan untuk pengujian.");
+                "+62-815-3333-2211", "pass", null, "Customer percobaan untuk pengujian.", 100_000_000L);
+
+        upsertUser(new Customer(), "customer2", "customer2@apap.id", "APAP Customer2",
+                "+62-815-3333-2222", "pass", null, "Customer2 percobaan untuk pengujian.", 50_000_000L);
 
         System.out.println("Seed users ensured: " + endUserRepository.count() + " total users in database");
     }
 
     private void upsertUser(EndUser template, String username, String email, String fullName,
             String phone, String password, String organization, String notes) {
+        upsertUser(template, username, email, fullName, phone, password, organization, notes, null);
+    }
+    private void upsertUser(EndUser template, String username, String email, String fullName,
+            String phone, String password, String organization, String notes, Long saldo) {
+        
         EndUser existingUser = endUserRepository.findByUsernameIgnoreCase(username).orElse(null);
 
         if (existingUser != null) {
-            // Update existing user with new password
             existingUser.setEmail(email);
             existingUser.setFullName(fullName);
+            
             if (existingUser instanceof RentalVendor rv) {
                 rv.setPhone(phone);
+                if (template instanceof RentalVendor templateRv && templateRv.getListOfLocations() != null) {
+                    rv.setListOfLocations(templateRv.getListOfLocations());
+                }
             }
+            
+            // Update saldo khusus Customer
+            if (existingUser instanceof Customer customer && saldo != null) {
+                customer.setSaldo(saldo);
+            }
+
             if (password != null) {
                 existingUser.setPassword(passwordEncoder.encode(password));
             }
@@ -145,21 +162,28 @@ public class DataLoader implements CommandLineRunner {
             existingUser.setUpdatedAt(LocalDateTime.now());
             endUserRepository.save(existingUser);
         } else {
-            // Create new user
-            EndUser newUser = buildUser(template, username, email, fullName, phone, password, organization, notes);
+            EndUser newUser = buildUser(template, username, email, fullName, phone, password, organization, notes, saldo);
             endUserRepository.save(newUser);
         }
     }
 
     private EndUser buildUser(EndUser user, String username, String email, String fullName,
-            String phone, String password, String organization, String notes) {
+            String phone, String password, String organization, String notes, Long saldo) {
+        
         user.setId(UUID.randomUUID());
         user.setUsername(username);
         user.setEmail(email);
         user.setFullName(fullName);
+        
         if (user instanceof RentalVendor rv) {
             rv.setPhone(phone);
         }
+        
+        // Set saldo awal khusus Customer
+        if (user instanceof Customer customer) {
+            customer.setSaldo(saldo != null ? saldo : 0L);
+        }
+
         if (password != null) {
             user.setPassword(passwordEncoder.encode(password));
         }
@@ -171,8 +195,7 @@ public class DataLoader implements CommandLineRunner {
         return user;
     }
 
-    private List<Activity> createActivities(LocalDateTime baseTime, String flightAirlineId,
-            String accommodationOwnerId, String rentalVendorId) {
+    private List<Activity> createActivities(LocalDateTime baseTime) {
         LocalDateTime now = baseTime;
         List<Activity> activities = new ArrayList<>();
 
@@ -185,7 +208,6 @@ public class DataLoader implements CommandLineRunner {
         activity1.setCapacity(180);
         activity1.setPrice(800000L);
         activity1.setActivityType("Flight");
-        activity1.setCreatorId(flightAirlineId);
         activity1.setStartDate(now.plusDays(5));
         activity1.setEndDate(now.plusDays(5).plusHours(2));
         activity1.setStartLocation("Soekarno-Hatta Airport");
@@ -198,7 +220,6 @@ public class DataLoader implements CommandLineRunner {
         activity2.setCapacity(50);
         activity2.setPrice(350000L);
         activity2.setActivityType("Accommodation");
-        activity2.setCreatorId(accommodationOwnerId);
         activity2.setStartDate(now.plusDays(3));
         activity2.setEndDate(now.plusDays(3).plusHours(24));
         activity2.setStartLocation("Downtown Hotel");
@@ -211,7 +232,6 @@ public class DataLoader implements CommandLineRunner {
         activity3.setCapacity(20);
         activity3.setPrice(750000L);
         activity3.setActivityType("Vehicle Rental");
-        activity3.setCreatorId(rentalVendorId);
         activity3.setStartDate(now.plusDays(7));
         activity3.setEndDate(now.plusDays(7).plusHours(8));
         activity3.setStartLocation("Jakarta Downtown");
@@ -224,7 +244,6 @@ public class DataLoader implements CommandLineRunner {
         activity4.setCapacity(15);
         activity4.setPrice(450000L);
         activity4.setActivityType("Accommodation");
-        activity4.setCreatorId(accommodationOwnerId);
         activity4.setStartDate(now.plusDays(4));
         activity4.setEndDate(now.plusDays(4).plusHours(24));
         activity4.setStartLocation("Ubud Resort");
@@ -237,7 +256,6 @@ public class DataLoader implements CommandLineRunner {
         activity5.setCapacity(25);
         activity5.setPrice(600000L);
         activity5.setActivityType("Vehicle Rental");
-        activity5.setCreatorId(rentalVendorId);
         activity5.setStartDate(now.plusDays(6));
         activity5.setEndDate(now.plusDays(6).plusHours(3));
         activity5.setStartLocation("Kuta City Center");
@@ -250,7 +268,6 @@ public class DataLoader implements CommandLineRunner {
         activity6.setCapacity(20);
         activity6.setPrice(1500000L);
         activity6.setActivityType("Flight");
-        activity6.setCreatorId(flightAirlineId);
         activity6.setStartDate(now.plusDays(2));
         activity6.setEndDate(now.plusDays(2).plusHours(2));
         activity6.setStartLocation("Soekarno-Hatta Airport");
@@ -263,7 +280,6 @@ public class DataLoader implements CommandLineRunner {
         activity7.setCapacity(150);
         activity7.setPrice(1200000L);
         activity7.setActivityType("Flight");
-        activity7.setCreatorId(flightAirlineId);
         activity7.setStartDate(now.plusDays(6));
         activity7.setEndDate(now.plusDays(6).plusHours(2));
         activity7.setStartLocation("Soekarno-Hatta Airport");
@@ -276,7 +292,6 @@ public class DataLoader implements CommandLineRunner {
         activity8.setCapacity(80);
         activity8.setPrice(650000L);
         activity8.setActivityType("Accommodation");
-        activity8.setCreatorId(accommodationOwnerId);
         activity8.setStartDate(now.plusDays(7));
         activity8.setEndDate(now.plusDays(7).plusHours(24));
         activity8.setStartLocation("Seminyak Resort");
@@ -289,7 +304,6 @@ public class DataLoader implements CommandLineRunner {
         activity9.setCapacity(40);
         activity9.setPrice(900000L);
         activity9.setActivityType("Vehicle Rental");
-        activity9.setCreatorId(rentalVendorId);
         activity9.setStartDate(now.plusDays(11));
         activity9.setEndDate(now.plusDays(11).plusHours(8));
         activity9.setStartLocation("Labuan Bajo Center");
@@ -302,7 +316,6 @@ public class DataLoader implements CommandLineRunner {
         activity10.setCapacity(70);
         activity10.setPrice(950000L);
         activity10.setActivityType("Accommodation");
-        activity10.setCreatorId(accommodationOwnerId);
         activity10.setStartDate(now.plusDays(15));
         activity10.setEndDate(now.plusDays(15).plusHours(48));
         activity10.setStartLocation("Nusa Dua Resort");
@@ -313,13 +326,12 @@ public class DataLoader implements CommandLineRunner {
                 activity7, activity8, activity9, activity10));
 
         // Generate many more activities using JavaFaker
-        activities.addAll(generateFakerActivities(10, baseTime, flightAirlineId, accommodationOwnerId, rentalVendorId));
+        activities.addAll(generateFakerActivities(10, baseTime));
 
         return activities;
     }
 
-    private List<Activity> generateFakerActivities(int existingCount, LocalDateTime baseTime,
-            String flightAirlineId, String accommodationOwnerId, String rentalVendorId) {
+    private List<Activity> generateFakerActivities(int existingCount, LocalDateTime baseTime) {
         // Start numbering after the existing fixed activities
         int nextIndex = existingCount + 1;
         final int perType = FAKER_PER_ACTIVITY_TYPE;
@@ -351,7 +363,6 @@ public class DataLoader implements CommandLineRunner {
             a.setCapacity(randBetween(100, 250));
             a.setPrice((long) randBetween(500_000, 3_000_000));
             a.setActivityType("Flight");
-            a.setCreatorId(flightAirlineId);
             a.setStartDate(start);
             a.setEndDate(end);
             a.setStartLocation(origin);
@@ -373,7 +384,6 @@ public class DataLoader implements CommandLineRunner {
             a.setCapacity(randBetween(10, 100));
             a.setPrice((long) randBetween(200_000, 2_000_000));
             a.setActivityType("Accommodation");
-            a.setCreatorId(accommodationOwnerId);
             a.setStartDate(start);
             a.setEndDate(end);
             a.setStartLocation(city);
@@ -396,7 +406,6 @@ public class DataLoader implements CommandLineRunner {
             a.setCapacity(randBetween(10, 50));
             a.setPrice((long) randBetween(300_000, 1_000_000));
             a.setActivityType("Vehicle Rental");
-            a.setCreatorId(rentalVendorId);
             a.setStartDate(start);
             a.setEndDate(end);
             a.setStartLocation(city);

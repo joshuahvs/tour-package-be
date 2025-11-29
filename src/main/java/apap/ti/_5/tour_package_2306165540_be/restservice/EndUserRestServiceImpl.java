@@ -224,14 +224,39 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         }
     }
 
-    private void applyCommonFields(EndUser user, String username, String email, String fullName,
-            String organizationName, String notes) {
-        user.setUsername(username.trim());
-        user.setEmail(email.trim());
-        user.setFullName(fullName.trim());
-        user.setOrganizationName(trimToNull(organizationName));
-        user.setNotes(trimToNull(notes));
+    @Override
+    public void deductBalance(UUID userId, Double amount) {
+        EndUser user = endUserRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User tidak ditemukan."));
+
+        if (!(user instanceof Customer)) {
+             throw new IllegalArgumentException("Tipe user ini bukan Customer, jadi tidak memiliki saldo.");
+        }
+
+  
+        Customer customer = (Customer) user;
+
+        long currentBalance = (customer.getSaldo() == null) ? 0L : customer.getSaldo();
+        long amountToDeduct = amount.longValue();
+
+        if (currentBalance < amountToDeduct) {
+            throw new IllegalArgumentException("\"User balance insufficient, please Top Up balance. Current Balance " + currentBalance);
+        }
+
+        customer.setSaldo(currentBalance - amountToDeduct);
+        customer.setUpdatedAt(LocalDateTime.now());
+        
+        endUserRepository.save(customer);
     }
+
+    // private void applyCommonFields(EndUser user, String username, String email, String fullName,
+    //         String organizationName, String notes) {
+    //     user.setUsername(username.trim());
+    //     user.setEmail(email.trim());
+    //     user.setFullName(fullName.trim());
+    //     user.setOrganizationName(trimToNull(organizationName));
+    //     user.setNotes(trimToNull(notes));
+    // }
 
     private void applyCommonFieldsWithGender(EndUser user, String username, String email, String fullName,
             String gender, String organizationName, String notes) {

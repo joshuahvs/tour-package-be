@@ -25,4 +25,6 @@ public interface EndUserRestService {
     EndUserResponseDTO updateEndUser(UpdateEndUserRequestDTO requestDTO);
 
     void deleteEndUser(UUID id);
+
+    void deductBalance(UUID userId, Double amount);
 }

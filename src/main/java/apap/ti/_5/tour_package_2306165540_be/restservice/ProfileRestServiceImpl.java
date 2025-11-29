@@ -163,6 +163,10 @@ public class ProfileRestServiceImpl implements ProfileRestService {
         dto.setFullName(user.getFullName());
         if (user instanceof RentalVendor rv) {
             dto.setPhoneNumber(rv.getPhone());
+            dto.setLocations(rv.getListOfLocations());
+        }
+        if (user instanceof Customer customer) {
+            dto.setSaldo(customer.getSaldo());
         }
         dto.setRole(user.getRoleType().name());
         dto.setRoleDisplayName(user.getRoleType().getDisplayName());

@@ -427,6 +427,46 @@ public class EndUserRestController {
         }
     }
 
+    @PostMapping("/{id}/deduct-balance")
+    public ResponseEntity<BaseResponseDTO<String>> deductBalance(
+            @PathVariable UUID id,
+            @RequestBody java.util.Map<String, Double> request
+    ) {
+        var response = new BaseResponseDTO<String>();
+        try {
+            Double amount = request.get("amount");
+            
+            // Validasi input amount
+            if (amount == null || amount <= 0) {
+                throw new IllegalArgumentException("Nominal amount harus positif.");
+            }
+
+            // Panggil Service
+            endUserRestService.deductBalance(id, amount);
+
+            // Response Sukses
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Saldo berhasil dipotong.");
+            response.setData("Success");
+            response.setTimestamp(new Date());
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            // Error Validasi (Saldo kurang, User salah) -> 400 Bad Request
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            response.setMessage(e.getMessage());
+            response.setTimestamp(new Date());
+            return ResponseEntity.badRequest().body(response);
+
+        } catch (Exception e) {
+            // Error Server Lainnya -> 500 Internal Server Error
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Gagal memproses saldo: " + e.getMessage());
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     private boolean isSuperAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
