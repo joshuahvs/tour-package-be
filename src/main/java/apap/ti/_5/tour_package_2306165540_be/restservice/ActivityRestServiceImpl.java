@@ -244,6 +244,11 @@ public class ActivityRestServiceImpl implements ActivityRestService {
         EndUser currentUser = endUserRepository.findByUsernameIgnoreCase(currentUsername)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Superadmin can modify all activities
+        if (currentUser.getRoleType() == RoleType.SUPERADMIN) {
+            return;
+        }
+
         // Check if user is the creator of the activity
         if (!activity.getCreatorId().equals(currentUser.getId().toString())) {
             throw new RuntimeException("You can only modify activities you created");
@@ -309,6 +314,11 @@ public class ActivityRestServiceImpl implements ActivityRestService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         RoleType userRole = currentUser.getRoleType();
+
+        // Superadmin can create all types
+        if (userRole == RoleType.SUPERADMIN) {
+            return;
+        }
 
         // Tour Package Vendor can create all types
         if (userRole == RoleType.TOUR_PACKAGE_VENDOR) {
