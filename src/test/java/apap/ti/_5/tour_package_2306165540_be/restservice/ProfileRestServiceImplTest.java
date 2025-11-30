@@ -16,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -32,6 +33,9 @@ class ProfileRestServiceImplTest {
     @Mock
     private EndUserRepository endUserRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private ProfileRestServiceImpl profileRestService;
 
@@ -46,6 +50,9 @@ class ProfileRestServiceImplTest {
         baseRequest.setRole(RoleType.SUPERADMIN.name());
         baseRequest.setPhoneNumber("0812");
         baseRequest.setNotes("note");
+        baseRequest.setPassword("secret123");
+
+        lenient().when(passwordEncoder.encode(anyString())).thenAnswer(inv -> "ENC(" + inv.getArgument(0) + ")");
     }
 
     @Test
@@ -74,6 +81,7 @@ class ProfileRestServiceImplTest {
         existing.setFullName("Old");
         existing.setCreatedAt(LocalDateTime.now().minusDays(1));
         existing.setUpdatedAt(LocalDateTime.now().minusDays(1));
+        existing.setPassword("hashed");
 
         when(endUserRepository.findByUsernameIgnoreCase("superadmin")).thenReturn(Optional.of(existing));
         when(endUserRepository.findByEmailIgnoreCase("admin@travelapap.id")).thenReturn(Optional.of(existing));
@@ -103,6 +111,7 @@ class ProfileRestServiceImplTest {
         request.setEmail("tour@customer.id");
         request.setFullName("Vendor Baru");
         request.setRole(RoleType.TOUR_PACKAGE_VENDOR.name());
+        request.setPassword("switchPass");
 
         when(endUserRepository.findByUsernameIgnoreCase("tour.vendor")).thenReturn(Optional.of(existing));
         when(endUserRepository.findByEmailIgnoreCase("tour@customer.id")).thenReturn(Optional.of(existing));
@@ -158,5 +167,63 @@ class ProfileRestServiceImplTest {
         profileRestService.deactivateEndUser("vendor");
         assertThat(vendor.isActive()).isFalse();
         verify(endUserRepository).save(vendor);
+    }
+
+    @Test
+    @DisplayName("getEndUsers(false) only queries active users")
+    void getEndUsers_activeOnly() {
+        Customer customer = new Customer();
+        customer.setId(UUID.randomUUID());
+        customer.setUsername("active");
+        customer.setEmail("active@example.com");
+        customer.setFullName("Active");
+        customer.setActive(true);
+
+        when(endUserRepository.findAllByActiveIsTrueOrderByUsernameAsc()).thenReturn(java.util.List.of(customer));
+
+        var result = profileRestService.getEndUsers(false);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("active");
+        verify(endUserRepository, never()).findAllByOrderByUsernameAsc();
+    }
+
+    @Test
+    @DisplayName("getEndUserByUsername returns dto when found")
+    void getEndUserByUsername_success() {
+        Customer customer = new Customer();
+        customer.setId(UUID.randomUUID());
+        customer.setUsername("lookupuser");
+        customer.setEmail("lookup@example.com");
+        customer.setFullName("Lookup");
+        when(endUserRepository.findByUsernameIgnoreCase("lookupuser"))
+                .thenReturn(Optional.of(customer));
+
+        EndUserResponseDTO dto = profileRestService.getEndUserByUsername("lookupuser");
+        assertThat(dto.getUsername()).isEqualTo("lookupuser");
+    }
+
+    @Test
+    @DisplayName("getRoleDefinitions enumerates all roles")
+    void getRoleDefinitions_allRoles() {
+        var roles = profileRestService.getRoleDefinitions();
+        assertThat(roles).hasSize(RoleType.values().length);
+    }
+
+    @Test
+    @DisplayName("Upsert new user without password is rejected")
+    void upsert_requiresPasswordForNewUser() {
+        UpsertEndUserRequestDTO request = new UpsertEndUserRequestDTO();
+        request.setUsername("newuser");
+        request.setEmail("new@travelapap.id");
+        request.setFullName("Newbie");
+        request.setRole(RoleType.CUSTOMER.name());
+        request.setPassword(" ");
+
+        when(endUserRepository.findByUsernameIgnoreCase("newuser")).thenReturn(Optional.empty());
+        when(endUserRepository.findByEmailIgnoreCase("new@travelapap.id")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> profileRestService.upsertEndUser(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Password wajib");
     }
 }

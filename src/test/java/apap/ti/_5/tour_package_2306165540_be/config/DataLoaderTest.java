@@ -4,16 +4,27 @@ import apap.ti._5.tour_package_2306165540_be.model.Activity;
 import apap.ti._5.tour_package_2306165540_be.model.OrderedQuantity;
 import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
+import apap.ti._5.tour_package_2306165540_be.model.profile.AccommodationOwner;
+import apap.ti._5.tour_package_2306165540_be.model.profile.EndUser;
+import apap.ti._5.tour_package_2306165540_be.model.profile.FlightAirline;
+import apap.ti._5.tour_package_2306165540_be.model.profile.RentalVendor;
 import apap.ti._5.tour_package_2306165540_be.repository.ActivityRepository;
+import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.OrderedQuantityRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -29,8 +40,58 @@ class DataLoaderTest {
         private PlanRepository planRepository;
         @Mock
         private OrderedQuantityRepository orderedQuantityRepository;
+        @Mock
+        private EndUserRepository endUserRepository;
+        @Mock
+        private PasswordEncoder passwordEncoder;
 
         private DataLoader dataLoader;
+        private AutoCloseable mocks;
+        private final Map<String, EndUser> userStore = new HashMap<>();
+
+        @BeforeEach
+        void setup() {
+                mocks = MockitoAnnotations.openMocks(this);
+
+                userStore.clear();
+                seedExistingUser("flightairline", new FlightAirline());
+                seedExistingUser("accommodationowner", new AccommodationOwner());
+                seedExistingUser("rentalvendor", new RentalVendor());
+
+                lenient().when(endUserRepository.findByUsernameIgnoreCase(anyString())).thenAnswer(invocation -> {
+                        String username = ((String) invocation.getArgument(0)).toLowerCase();
+                        return Optional.ofNullable(userStore.get(username));
+                });
+
+                lenient().when(endUserRepository.save(any(EndUser.class))).thenAnswer(invocation -> {
+                        EndUser saved = invocation.getArgument(0);
+                        if (saved.getUsername() != null) {
+                                userStore.put(saved.getUsername().toLowerCase(), saved);
+                        }
+                        if (saved.getId() == null) {
+                                saved.setId(UUID.randomUUID());
+                        }
+                        return saved;
+                });
+
+                lenient().when(passwordEncoder.encode(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
+
+                dataLoader = new DataLoader(activityRepository, packageRepository,
+                                planRepository, orderedQuantityRepository, endUserRepository, passwordEncoder);
+        }
+
+        @AfterEach
+        void tearDown() throws Exception {
+                if (mocks != null) {
+                        mocks.close();
+                }
+        }
+
+        private void seedExistingUser(String username, EndUser user) {
+                user.setId(UUID.randomUUID());
+                user.setUsername(username);
+                userStore.put(username.toLowerCase(), user);
+        }
 
         // @BeforeEach
         // void setup() {
@@ -68,7 +129,7 @@ class DataLoaderTest {
 
                 List<Activity> activities = activityCaptor.getValue();
                 assertThat(activities).isNotEmpty();
-                assertThat(activities).hasSize(10 + 3 * 120);
+                assertThat(activities).hasSize(10 + 3 * 20);
 
                 List<Package> initialPackages = (List<Package>) packageCaptor.getAllValues().get(0);
                 assertThat(initialPackages).hasSize(4);
