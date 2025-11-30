@@ -21,6 +21,6 @@ security:
 
 bill:
   service:
-    base-url: "${BILL_SERVICE_BASE_URL:http://localhost:8081}"
-    api-key: "${BILL_SERVICE_API_KEY:}"
+    base-url: "${BILL_SERVICE_BASE_URL:http://2306240124-be.hafizmuh.site}"
+    api-key: "${BILL_SERVICE_API_KEY:puA0lv08ct8OmntTlBkiGuUnM5ax8BBq}"
     create-path: /api/bill/create

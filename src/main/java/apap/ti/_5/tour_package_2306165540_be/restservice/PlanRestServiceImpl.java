@@ -487,6 +487,7 @@ public class PlanRestServiceImpl implements PlanRestService {
         }
 
         planRepository.save(currentPlan);
+        recalculatePackagePrice(pkg.getId());
 
         // Return updated plan details
         return getPlanDetail(planId);
@@ -703,6 +704,7 @@ public class PlanRestServiceImpl implements PlanRestService {
         }
 
         planRepository.save(plan);
+        recalculatePackagePrice(pkg.getId());
 
         // Return updated plan details
         return getPlanDetail(plan.getId());
@@ -754,6 +756,7 @@ public class PlanRestServiceImpl implements PlanRestService {
         }
 
         planRepository.save(plan);
+        recalculatePackagePrice(pkg.getId());
 
         // Return updated plan details
         return getPlanDetail(plan.getId());
@@ -783,6 +786,28 @@ public class PlanRestServiceImpl implements PlanRestService {
         // Soft delete: set deletedAt to current timestamp
         plan.setDeletedAt(LocalDateTime.now());
         planRepository.save(plan);
+        recalculatePackagePrice(plan.getPackageEntity().getId());
+    }
+
+    private void recalculatePackagePrice(String packageId) {
+        if (packageId == null) {
+            return;
+        }
+
+        Package managedPackage = packageRepository.findById(packageId)
+                .orElse(null);
+
+        if (managedPackage == null) {
+            return;
+        }
+
+        long totalPrice = managedPackage.getPlans().stream()
+                .filter(plan -> plan.getDeletedAt() == null)
+                .mapToLong(plan -> plan.getPrice() != null ? plan.getPrice() : 0L)
+                .sum();
+
+        managedPackage.setPrice(totalPrice);
+        packageRepository.save(managedPackage);
     }
 
     // Authorization helper methods

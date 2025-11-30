@@ -220,6 +220,16 @@ public class PackageRestServiceImpl implements PackageRestService {
                     "Cannot process package. All plans must have status 'FULFILLED' before processing.");
         }
 
+        long totalPrice = activePlans.stream()
+                .mapToLong(plan -> plan.getPrice() != null ? plan.getPrice() : 0L)
+                .sum();
+
+        if (totalPrice <= 0) {
+            throw new RuntimeException("Cannot process package. Total price from plans must be greater than 0.");
+        }
+
+        packageEntity.setPrice(totalPrice);
+
         // Process: Change package status to Waiting for Payment
         packageEntity.setStatus(STATUS_WAITING_FOR_PAYMENT);
 
