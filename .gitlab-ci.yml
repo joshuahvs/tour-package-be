@@ -51,12 +51,14 @@ deploy:
     - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
   script:
     - echo "Generating Kubernetes ConfigMap & Secret via printf..."
+    # Bagian ConfigMap (Tidak berubah)
     - |
       printf "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: tour-package-be-config\n  namespace: default\ndata:\n  DATABASE_URL_PROD: \"%s\"\n  DATABASE_USERNAME: \"%s\"\n" \
       "$DATABASE_URL_PROD" "$DATABASE_USERNAME" > configmap.yaml
+    # REVISI: Menambahkan BILL_API_KEY dan BILL_SERVICE_API_KEY ke dalam Secret
     - |
-      printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: tour-package-be-secret\n  namespace: default\ntype: Opaque\nstringData:\n  DATABASE_PASSWORD: \"%s\"\n  JWT_SECRET_KEY: \"%s\"\n  CORS_ALLOWED_ORIGINS: \"%s\"\n" \
-      "$DATABASE_PASSWORD" "$JWT_SECRET_KEY" "$CORS_ALLOWED_ORIGINS" > secret.yaml
+      printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: tour-package-be-secret\n  namespace: default\ntype: Opaque\nstringData:\n  DATABASE_PASSWORD: \"%s\"\n  JWT_SECRET_KEY: \"%s\"\n  CORS_ALLOWED_ORIGINS: \"%s\"\n  BILL_API_KEY: \"%s\"\n  BILL_SERVICE_API_KEY: \"%s\"\n" \
+      "$DATABASE_PASSWORD" "$JWT_SECRET_KEY" "$CORS_ALLOWED_ORIGINS" "$BILL_API_KEY" "$BILL_SERVICE_API_KEY" > secret.yaml
     - sed "s|REPLACE_ME_TAG|$IMAGE_TAG|g" k8s/deployment.yaml > deployment.yaml
     - echo "Creating -> deployment.yaml, configmap.yaml, secret.yaml, service.yaml, ingress.yaml"
     - ssh $EC2_USER@$EC2_HOST "mkdir -p ~/app/tour-package-be/k8s"
