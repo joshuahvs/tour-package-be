@@ -277,6 +277,7 @@ public class EndUserRestServiceImpl implements EndUserRestService {
         dto.setGender(user.getGender());
         if (user instanceof RentalVendor rv) {
             dto.setPhoneNumber(rv.getPhone());
+            dto.setLocations(rv.getListOfLocations());
         }
         dto.setRole(user.getRoleType().name());
         dto.setRoleDisplayName(user.getRoleType().getDisplayName());
