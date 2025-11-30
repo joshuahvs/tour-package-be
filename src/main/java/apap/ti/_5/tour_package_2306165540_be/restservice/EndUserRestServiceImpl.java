@@ -99,7 +99,8 @@ public class EndUserRestServiceImpl implements EndUserRestService {
     @Override
     public EndUserResponseDTO createEndUser(CreateEndUserRequestDTO requestDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isSuperadmin = hasAuthority(authentication, "ROLE_SUPERADMIN");
+        // Authority di-set sebagai "SUPERADMIN" (tanpa prefix ROLE_) di UserDetailsServiceImpl
+        boolean isSuperadmin = hasAuthority(authentication, "SUPERADMIN");
 
         // Jika role tidak diisi, tentukan role berdasarkan pembuat
         RoleType targetRole;
@@ -140,8 +141,11 @@ public class EndUserRestServiceImpl implements EndUserRestService {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication != null ? authentication.getName() : null;
-        boolean isSuperadmin = hasAuthority(authentication, "ROLE_SUPERADMIN");
+        // Authority di-set sebagai "SUPERADMIN" (tanpa prefix ROLE_) di UserDetailsServiceImpl
+        boolean isSuperadmin = hasAuthority(authentication, "SUPERADMIN");
 
+        // Ownership validation: SUPERADMIN bisa update semua user, non-SUPERADMIN hanya bisa update akun sendiri
+        // Khusus untuk update saldo, SUPERADMIN harus bisa update saldo customer lain (untuk top-up)
         if (!isSuperadmin && (currentUsername == null
                 || !existing.getUsername().equalsIgnoreCase(currentUsername))) {
             throw new AccessDeniedException("Anda hanya dapat memperbarui akun milik sendiri.");
@@ -435,7 +439,11 @@ public class EndUserRestServiceImpl implements EndUserRestService {
             return false;
         }
         for (GrantedAuthority authority : authentication.getAuthorities()) {
-            if (requiredAuthority.equalsIgnoreCase(authority.getAuthority())) {
+            String authorityName = authority.getAuthority();
+            // Check exact match atau tanpa prefix ROLE_ (karena authority di-set sebagai "SUPERADMIN" bukan "ROLE_SUPERADMIN")
+            if (requiredAuthority.equalsIgnoreCase(authorityName) 
+                    || requiredAuthority.equalsIgnoreCase("ROLE_" + authorityName)
+                    || authorityName.equalsIgnoreCase("ROLE_" + requiredAuthority)) {
                 return true;
             }
         }
