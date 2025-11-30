@@ -447,7 +447,7 @@ public class DataLoader implements CommandLineRunner {
                 "USER-001",
                 "Bali Adventure Package",
                 12,
-                "PROCESSED",
+                "Waiting for Payment",
                 baseTime.plusDays(5).withHour(8),
                 baseTime.plusDays(8).withHour(18)));
 
@@ -456,7 +456,7 @@ public class DataLoader implements CommandLineRunner {
                 "USER-002",
                 "Cultural Experience",
                 16,
-                "PROCESSED",
+                "Waiting for Payment",
                 baseTime.plusDays(9).withHour(9),
                 baseTime.plusDays(13).withHour(21)));
 
@@ -465,7 +465,7 @@ public class DataLoader implements CommandLineRunner {
                 "USER-003",
                 "Water Sports Extravaganza",
                 18,
-                "PROCESSED",
+                "Waiting for Payment",
                 baseTime.plusDays(14).withHour(7),
                 baseTime.plusDays(18).withHour(20)));
 

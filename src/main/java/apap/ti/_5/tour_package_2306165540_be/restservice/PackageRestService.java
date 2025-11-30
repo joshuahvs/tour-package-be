@@ -21,5 +21,7 @@ public interface PackageRestService {
 
     PackageResponseDTO processPackage(String id);
 
+    PackageResponseDTO confirmPackagePayment(String id);
+
     void deletePackage(String id);
 }

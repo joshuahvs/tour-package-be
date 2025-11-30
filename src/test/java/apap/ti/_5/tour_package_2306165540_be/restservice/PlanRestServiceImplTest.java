@@ -52,7 +52,7 @@ public class PlanRestServiceImplTest {
 
         processedPackage = new Package();
         processedPackage.setId("PKG-002");
-        processedPackage.setStatus("PROCESSED");
+        processedPackage.setStatus("Waiting for Payment");
         processedPackage.setQuota(10);
     }
 

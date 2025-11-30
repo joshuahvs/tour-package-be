@@ -25,6 +25,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class PackageRestServiceImpl implements PackageRestService {
 
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_WAITING_FOR_PAYMENT = "Waiting for Payment";
+    private static final String STATUS_PAYMENT_CONFIRMED = "Payment Confirmed";
+    private static final String STATUS_LEGACY_PROCESSED = "PROCESSED";
+
     private final PackageRepository packageRepository;
     private final PlanRepository planRepository;
     private final EndUserRepository endUserRepository;
@@ -102,7 +107,7 @@ public class PackageRestServiceImpl implements PackageRestService {
 
         Package packageEntity = toEntity(requestDTO);
         packageEntity.setId(packageId);
-        packageEntity.setStatus("PENDING"); // Default status
+        packageEntity.setStatus(STATUS_PENDING); // Default status
         packageEntity.setPrice(0L); // Initial price is 0
 
         Package savedPackage = packageRepository.save(packageEntity);
@@ -138,11 +143,12 @@ public class PackageRestServiceImpl implements PackageRestService {
             throw new RuntimeException("You do not have permission to update this package");
         }
 
-        // Validate: Only allow edit if status is PENDING or PROCESSED
-        if (!"PENDING".equalsIgnoreCase(existingPackage.getStatus()) &&
-                !"PROCESSED".equalsIgnoreCase(existingPackage.getStatus())) {
+        // Validate: Only allow edit if status is PENDING or Waiting for Payment
+        if (!STATUS_PENDING.equalsIgnoreCase(existingPackage.getStatus()) &&
+                !isWaitingForPaymentStatus(existingPackage.getStatus())) {
             throw new RuntimeException(
-                    "Cannot edit package. Only packages with status 'PENDING' or 'PROCESSED' can be edited.");
+                    "Cannot edit package. Only packages with status 'PENDING' or '" +
+                            STATUS_WAITING_FOR_PAYMENT + "' can be edited.");
         }
 
         // Validate quota > 0
@@ -162,11 +168,13 @@ public class PackageRestServiceImpl implements PackageRestService {
             throw new RuntimeException("End date must be after start date");
         }
 
-        // Validate: Package with status PROCESSED cannot change activityIdList
-        // This is checked by not allowing plan modifications when status is PROCESSED
-        if ("PROCESSED".equalsIgnoreCase(existingPackage.getStatus())) {
-            // For PROCESSED packages, only allow editing packageName, startDate, endDate,
-            // quota
+        // Validate: Package with status Waiting for Payment cannot change
+        // activityIdList
+        // This is checked by not allowing plan modifications when status is Waiting for
+        // Payment
+        if (isWaitingForPaymentStatus(existingPackage.getStatus())) {
+            // For Waiting for Payment packages, only allow editing packageName, startDate,
+            // endDate, quota
             // activityIdList changes are not allowed (handled via Plan management)
         }
 
@@ -187,7 +195,7 @@ public class PackageRestServiceImpl implements PackageRestService {
                 .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
 
         // Validate: Package must have status PENDING
-        if (!"PENDING".equalsIgnoreCase(packageEntity.getStatus())) {
+        if (!STATUS_PENDING.equalsIgnoreCase(packageEntity.getStatus())) {
             throw new RuntimeException("Cannot process package. Only packages with status 'PENDING' can be processed.");
         }
 
@@ -209,8 +217,8 @@ public class PackageRestServiceImpl implements PackageRestService {
                     "Cannot process package. All plans must have status 'FULFILLED' before processing.");
         }
 
-        // Process: Change package status to PROCESSED
-        packageEntity.setStatus("PROCESSED");
+        // Process: Change package status to Waiting for Payment
+        packageEntity.setStatus(STATUS_WAITING_FOR_PAYMENT);
 
         // Booking activities: Reduce capacity
         // For each active plan's ordered quantities, reduce the activity capacity
@@ -274,7 +282,7 @@ public class PackageRestServiceImpl implements PackageRestService {
             throw new RuntimeException("You do not have permission to delete this package");
         }
 
-        if (!"PENDING".equalsIgnoreCase(packageEntity.getStatus())) {
+        if (!STATUS_PENDING.equalsIgnoreCase(packageEntity.getStatus())) {
             throw new RuntimeException("Only packages with status 'PENDING' can be deleted.");
         }
 
@@ -292,6 +300,21 @@ public class PackageRestServiceImpl implements PackageRestService {
         // Soft delete: Set status to DELETED
         packageEntity.setStatus("DELETED");
         packageRepository.save(packageEntity);
+    }
+
+    @Override
+    public PackageResponseDTO confirmPackagePayment(String id) {
+        Package packageEntity = packageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found with id: " + id));
+
+        if (!isWaitingForPaymentStatus(packageEntity.getStatus())) {
+            throw new RuntimeException(
+                    "Cannot confirm payment. Package must have status '" + STATUS_WAITING_FOR_PAYMENT + "'.");
+        }
+
+        packageEntity.setStatus(STATUS_PAYMENT_CONFIRMED);
+        Package savedPackage = packageRepository.save(packageEntity);
+        return toResponseDTO(savedPackage);
     }
 
     // Helper methods
@@ -437,5 +460,14 @@ public class PackageRestServiceImpl implements PackageRestService {
         dto.setEndLocation(plan.getEndLocation());
         dto.setActivitiesCount(plan.getOrderedQuantities() != null ? plan.getOrderedQuantities().size() : 0);
         return dto;
+    }
+
+    private boolean isWaitingForPaymentStatus(String status) {
+        if (status == null) {
+            return false;
+        }
+
+        return STATUS_WAITING_FOR_PAYMENT.equalsIgnoreCase(status)
+                || STATUS_LEGACY_PROCESSED.equalsIgnoreCase(status);
     }
 }
