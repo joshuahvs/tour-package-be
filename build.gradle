@@ -83,3 +83,14 @@ tasks.named('test') {
 	useJUnitPlatform()
 	finalizedBy jacocoTestReport
 }
+
+
+// Pastikan bootJar enabled
+bootJar {
+    enabled = true
+}
+
+// Matikan jar biasa (supaya tidak bingung)
+jar {
+    enabled = false
+}
