@@ -115,27 +115,69 @@ public class DataLoader implements CommandLineRunner {
         upsertUser(new TourPackageVendor(), "tourpackagevendor", "sales@wonderfuljourney.id",
                 "Tour Package Vendor", "+62-811-5566-7788", "pass", "Wonderful Journey",
                 "Menyusun itinerary wisata domestik.");
-
-        upsertUser(new RentalVendor(), "rentalvendor", "contact@driveasy.id", "Rental Vendor",
+        // Rental Vendor 1
+        RentalVendor rentalVendorTemplate = new RentalVendor();
+        rentalVendorTemplate.setListOfLocations(Arrays.asList(
+                "DKI Jakarta",
+                "Bali",
+                "DI Yogyakarta",
+                "Jawa Timur",
+                "Sumatera Utara"
+        ));
+        upsertUser(rentalVendorTemplate, "rentalvendor", "contact@driveasy.id", "Rental Vendor",
                 "+62-811-9988-1122", "pass", "Driveasy Fleet", "Menyediakan armada rental.");
+        // Rental Vendor 2
+        RentalVendor vendorNusantara = new RentalVendor();
+        vendorNusantara.setListOfLocations(Arrays.asList(
+        "Jawa Barat",
+        "Banten",
+        "Sulawesi Selatan",
+        "Kalimantan Timur",
+        "Kalimantan Barat"
+        ));
+        upsertUser(vendorNusantara,
+                "rentalvendor_nusantara",
+                "admin@nusantara-rent.id",
+                "Nusantara Rental",
+                "+62-813-5555-7777",
+                "pass",
+                "CV Nusantara Trans",
+                "Spesialis rental mobil area Jawa Barat dan Kalimantan.");
 
         upsertUser(new Customer(), "customer", "customer@apap.id", "APAP Customer",
-                "+62-815-3333-2211", "pass", null, "Customer percobaan untuk pengujian.");
+                "+62-815-3333-2211", "pass", null, "Customer percobaan untuk pengujian.", 0L);
+
+        upsertUser(new Customer(), "customer2", "customer2@apap.id", "APAP Customer2",
+                "+62-815-3333-2222", "pass", null, "Customer2 percobaan untuk pengujian.", 0L);
 
         System.out.println("Seed users ensured: " + endUserRepository.count() + " total users in database");
     }
 
     private void upsertUser(EndUser template, String username, String email, String fullName,
             String phone, String password, String organization, String notes) {
+        upsertUser(template, username, email, fullName, phone, password, organization, notes, null);
+    }
+    private void upsertUser(EndUser template, String username, String email, String fullName,
+            String phone, String password, String organization, String notes, Long saldo) {
+        
         EndUser existingUser = endUserRepository.findByUsernameIgnoreCase(username).orElse(null);
 
         if (existingUser != null) {
-            // Update existing user with new password
             existingUser.setEmail(email);
             existingUser.setFullName(fullName);
+            
             if (existingUser instanceof RentalVendor rv) {
                 rv.setPhone(phone);
+                if (template instanceof RentalVendor templateRv && templateRv.getListOfLocations() != null) {
+                    rv.setListOfLocations(templateRv.getListOfLocations());
+                }
             }
+            
+            // Update saldo khusus Customer
+            if (existingUser instanceof Customer customer && saldo != null) {
+                customer.setSaldo(saldo);
+            }
+
             if (password != null) {
                 existingUser.setPassword(passwordEncoder.encode(password));
             }
@@ -145,21 +187,28 @@ public class DataLoader implements CommandLineRunner {
             existingUser.setUpdatedAt(LocalDateTime.now());
             endUserRepository.save(existingUser);
         } else {
-            // Create new user
-            EndUser newUser = buildUser(template, username, email, fullName, phone, password, organization, notes);
+            EndUser newUser = buildUser(template, username, email, fullName, phone, password, organization, notes, saldo);
             endUserRepository.save(newUser);
         }
     }
 
     private EndUser buildUser(EndUser user, String username, String email, String fullName,
-            String phone, String password, String organization, String notes) {
+            String phone, String password, String organization, String notes, Long saldo) {
+        
         user.setId(UUID.randomUUID());
         user.setUsername(username);
         user.setEmail(email);
         user.setFullName(fullName);
+        
         if (user instanceof RentalVendor rv) {
             rv.setPhone(phone);
         }
+        
+        // Set saldo awal khusus Customer
+        if (user instanceof Customer customer) {
+            customer.setSaldo(saldo != null ? saldo : 0L);
+        }
+
         if (password != null) {
             user.setPassword(passwordEncoder.encode(password));
         }
