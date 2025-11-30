@@ -1,6 +1,6 @@
 spring:
   application:
-    name: tour-package-be
+    name: tour-package-2306165540-be
 
   mvc:
     hiddenmethod:
@@ -18,3 +18,9 @@ security:
   jwt:
     jwtSecret: "${JWT_SECRET_KEY}"
     jwtExpirationMs: 86400000
+
+bill:
+  service:
+    base-url: "${BILL_SERVICE_BASE_URL:http://localhost:8081}"
+    api-key: "${BILL_SERVICE_API_KEY:}"
+    create-path: /api/bill/create

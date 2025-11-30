@@ -6,6 +6,7 @@ import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
+import apap.ti._5.tour_package_2306165540_be.restclient.BillServiceClient;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePackageRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageResponseDTO;
@@ -33,6 +34,9 @@ class PackageRestServiceImplTest {
 
     @Mock
     private PlanRepository planRepository;
+
+    @Mock
+    private BillServiceClient billServiceClient;
 
     @InjectMocks
     private PackageRestServiceImpl service;
@@ -241,6 +245,7 @@ class PackageRestServiceImplTest {
         PackageResponseDTO out = service.processPackage("PKG-1");
         assertThat(out.getStatus()).isEqualTo("Waiting for Payment");
         assertThat(act.getCapacity()).isEqualTo(7); // reduced
+        verify(billServiceClient).createBillForPackage(any(Package.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import apap.ti._5.tour_package_2306165540_be.model.Package;
 import apap.ti._5.tour_package_2306165540_be.model.Plan;
 import apap.ti._5.tour_package_2306165540_be.model.profile.EndUser;
 import apap.ti._5.tour_package_2306165540_be.model.profile.RoleType;
+import apap.ti._5.tour_package_2306165540_be.restclient.BillServiceClient;
 import apap.ti._5.tour_package_2306165540_be.repository.EndUserRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PackageRepository;
 import apap.ti._5.tour_package_2306165540_be.repository.PlanRepository;
@@ -33,12 +34,14 @@ public class PackageRestServiceImpl implements PackageRestService {
     private final PackageRepository packageRepository;
     private final PlanRepository planRepository;
     private final EndUserRepository endUserRepository;
+    private final BillServiceClient billServiceClient;
 
     public PackageRestServiceImpl(PackageRepository packageRepository, PlanRepository planRepository,
-            EndUserRepository endUserRepository) {
+            EndUserRepository endUserRepository, BillServiceClient billServiceClient) {
         this.packageRepository = packageRepository;
         this.planRepository = planRepository;
         this.endUserRepository = endUserRepository;
+        this.billServiceClient = billServiceClient;
     }
 
     @Override
@@ -268,6 +271,7 @@ public class PackageRestServiceImpl implements PackageRestService {
         }
 
         Package processedPackage = packageRepository.save(packageEntity);
+        billServiceClient.createBillForPackage(processedPackage);
         return toResponseDTO(processedPackage);
     }
 
