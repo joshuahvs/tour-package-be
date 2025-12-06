@@ -1,15 +1,26 @@
 spring:
   application:
-    name: tour-package-be
-  
+    name: tour-package-2306165540-be
+
   mvc:
     hiddenmethod:
       filter:
         enabled: true
-  
+
   profiles:
-    active: 'dev'
-  
+    active: "dev"
+
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
+
+security:
+  jwt:
+    jwtSecret: "${JWT_SECRET_KEY}"
+    jwtExpirationMs: 86400000
+
+bill:
+  service:
+    base-url: "${BILL_SERVICE_BASE_URL:http://2306240124-be.hafizmuh.site}"
+    api-key: "${BILL_SERVICE_API_KEY:puA0lv08ct8OmntTlBkiGuUnM5ax8BBq}"
+    create-path: /api/bill/create

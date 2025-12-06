@@ -7,7 +7,6 @@ import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.PlanRestService;
 
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +16,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/plans")
-@CrossOrigin(origins = "*")
 public class PlanEditRestController {
 
     private final PlanRestService planRestService;

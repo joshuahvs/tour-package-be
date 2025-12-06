@@ -10,5 +10,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RevenueStatisticsResponseDTO {
-    private List<ActivityTypeRevenueDTO> revenueByActivityType;
+    private String period; // Format: YYYY or YYYY-MM
+    private Long totalRevenue;
+    private List<MonthlyRevenueDTO> monthlyRevenues; // For yearly view
+    private List<ActivityTypeRevenueDTO> revenueByActivityType; // For monthly breakdown
 }

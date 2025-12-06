@@ -5,23 +5,60 @@ import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.PlanRestService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/packages")
-@CrossOrigin(origins = "*")
 public class PlanRestController {
 
     private final PlanRestService planRestService;
 
-    public PlanRestController(PlanRestService planRestService){
+    public PlanRestController(PlanRestService planRestService) {
         this.planRestService = planRestService;
+    }
+
+    @GetMapping("/{packageId}/plans")
+    public ResponseEntity<BaseResponseDTO<List<PlanResponseDTO>>> getAllPlansByPackage(@PathVariable String packageId) {
+        try {
+            List<PlanResponseDTO> plans = planRestService.getAllPlansByPackage(packageId);
+
+            BaseResponseDTO<List<PlanResponseDTO>> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Successfully retrieved plans");
+            response.setData(plans);
+            response.setTimestamp(new Date());
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            BaseResponseDTO<List<PlanResponseDTO>> response = new BaseResponseDTO<>();
+
+            if (e.getMessage().contains("not found")) {
+                response.setStatus(HttpStatus.NOT_FOUND.value());
+                response.setMessage(e.getMessage());
+                response.setData(null);
+                response.setTimestamp(new Date());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        } catch (Exception e) {
+            BaseResponseDTO<List<PlanResponseDTO>> response = new BaseResponseDTO<>();
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to retrieve plans: " + e.getMessage());
+            response.setData(null);
+            response.setTimestamp(new Date());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     @PostMapping("/{packageId}/plans/create")

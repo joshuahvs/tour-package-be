@@ -16,8 +16,10 @@ public class ActivityResponseDTO {
     private int capacity;
     private Long price;
     private String activityType;
+    private String creatorId;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String startLocation;
     private String endLocation;
+    private Boolean isDeleted;
 }

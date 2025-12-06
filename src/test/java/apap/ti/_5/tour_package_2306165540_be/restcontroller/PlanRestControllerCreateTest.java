@@ -3,9 +3,11 @@ package apap.ti._5.tour_package_2306165540_be.restcontroller;
 import apap.ti._5.tour_package_2306165540_be.restdto.request.CreatePlanRequestDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PlanResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.PlanRestService;
+import apap.ti._5.tour_package_2306165540_be.security.jwt.JwtTokenFilter;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -17,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PlanRestController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class PlanRestControllerCreateTest {
 
     @Autowired
@@ -24,6 +27,9 @@ class PlanRestControllerCreateTest {
 
     @MockBean
     private PlanRestService planRestService;
+
+    @MockBean
+    private JwtTokenFilter jwtTokenFilter;
 
     @Test
     void createPlan_shouldReturnCreated() throws Exception {

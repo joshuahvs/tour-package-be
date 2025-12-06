@@ -37,6 +37,9 @@ public class Activity {
     @Column(name = "activity_type", nullable = false)
     private String activityType;
 
+    @Column(name = "creator_id", nullable = false)
+    private String creatorId; // User ID of the vendor who created this activity
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
@@ -48,6 +51,9 @@ public class Activity {
 
     @Column(name = "end_location", nullable = false)
     private String endLocation;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 
     @OneToMany(mappedBy = "activity", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderedQuantity> orderedQuantities = new ArrayList<>();

@@ -5,7 +5,7 @@ import apap.ti._5.tour_package_2306165540_be.restdto.response.BaseResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageDetailResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restdto.response.PackageResponseDTO;
 import apap.ti._5.tour_package_2306165540_be.restservice.PackageRestService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,12 +15,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/package")
-@CrossOrigin(origins = "*")
 public class PackageRestController {
 
     private final PackageRestService packageRestService;
+    @Value("${BILL_API_KEY:}")
+    private String billApiKey;
 
-    public PackageRestController(PackageRestService packageRestService){
+    public PackageRestController(PackageRestService packageRestService) {
         this.packageRestService = packageRestService;
     }
 
@@ -261,6 +262,48 @@ public class PackageRestController {
             response.setData(null);
             response.setTimestamp(new Date());
 
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PutMapping("/{id}/payment/confirm")
+    public ResponseEntity<BaseResponseDTO<PackageResponseDTO>> confirmPackagePayment(
+            @PathVariable String id,
+            @RequestHeader(name = "X-API-KEY", required = false) String apiKey) {
+
+        BaseResponseDTO<PackageResponseDTO> response = new BaseResponseDTO<>();
+        response.setTimestamp(new Date());
+
+        if (billApiKey == null || billApiKey.isBlank()) {
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("BILL_API_KEY is not configured on the server");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+
+        if (apiKey == null || !apiKey.equals(billApiKey)) {
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            response.setMessage("Forbidden: Invalid billing API key");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
+
+        try {
+            PackageResponseDTO dto = packageRestService.confirmPackagePayment(id);
+            response.setStatus(HttpStatus.OK.value());
+            response.setMessage("Payment confirmed");
+            response.setData(dto);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            HttpStatus status = e.getMessage() != null && e.getMessage().toLowerCase().contains("not found")
+                    ? HttpStatus.NOT_FOUND
+                    : HttpStatus.BAD_REQUEST;
+            response.setStatus(status.value());
+            response.setMessage(e.getMessage());
+            response.setData(null);
+            return ResponseEntity.status(status).body(response);
+        } catch (Exception e) {
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setMessage("Failed to confirm payment: " + e.getMessage());
+            response.setData(null);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
